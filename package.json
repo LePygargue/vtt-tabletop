@@ -1,0 +1,13 @@
+{
+  "name": "plateau-jdr",
+  "version": "1.0.0",
+  "description": "Plateau de jeu de rôle en ligne : jetons, grille, carte et brouillard de guerre (sans dépendance)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js",
+    "users": "node scripts/manage-users.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

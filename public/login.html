@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Plateau JDR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="home login">
+<main class="home-card">
+  <h1>Plateau JDR</h1>
+  <form id="loginForm">
+    <label class="field">Utilisateur
+      <input id="username" name="username" autocomplete="username" required autofocus>
+    </label>
+    <label class="field">Mot de passe
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button class="primary big" type="submit">Se connecter</button>
+  </form>
+  <p id="msg" class="error" role="alert"></p>
+</main>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const msg = $('msg');
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.textContent = '';
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: $('username').value, password: $('password').value }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Échec de connexion.');
+      location.href = '/';
+    } catch (err) {
+      msg.textContent = err.message;
+    }
+  });
+})();
+</script>
+</body>
+</html>

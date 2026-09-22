@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Plateau JDR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="room">
+<div id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas></div>
+
+<header id="topbar">
+  <strong id="roomLabel">Salon</strong>
+  <button id="btnRenameRoom" class="gm" title="Renommer le salon" aria-label="Renommer le salon">✎</button>
+  <span id="roleBadge" class="badge"></span>
+  <span id="conn" class="badge muted">connexion…</span>
+  <div id="dangerWrap" class="danger-wrap" title="Danger : à quel point la cellule est repérée par ses ennemis. Monte selon l'histoire ou quand les chasseurs surjouent (Overreach) ; ne redescend que si le groupe se fait discret.">
+    <span class="danger-label">Danger</span>
+    <div id="dangerMeter" class="danger-meter"></div>
+  </div>
+  <div id="desperationWrap" class="danger-wrap" title="Désespoir : jauge partagée par toute la cellule, ajoute des dés à vos tests dans votre domaine (Creed Field). Monte ou descend selon les événements de l'histoire (décision du MJ).">
+    <span class="danger-label">Désespoir</span>
+    <div id="desperationMeter" class="danger-meter"></div>
+  </div>
+  <span id="initiativeBadge" class="badge ok" hidden></span>
+  <span class="spacer"></span>
+  <button id="btnCopyPlayers" title="Copier le lien à donner aux joueurs">Lien joueurs</button>
+  <button id="btnCopyGM" class="gm" title="Lien MJ secret, pour reprendre la main depuis un autre appareil">Lien MJ</button>
+  <button id="btnFit" title="Recentrer la vue (touche F)">Recentrer</button>
+  <button id="btnDice" title="Afficher / masquer les dés (touche D)" aria-label="Afficher / masquer les dés">🎲</button>
+  <button id="btnPanel" aria-label="Afficher / masquer le panneau">☰</button>
+  <button id="btnHome" title="Retour à l'accueil">🏠 Accueil</button>
+  <button id="btnLogout" title="Se déconnecter">Déconnexion</button>
+</header>
+
+<aside id="dicePanel">
+  <section>
+    <h3>Dés</h3>
+    <div class="dice-grid">
+      <button class="die" data-sides="4">d4</button>
+      <button class="die" data-sides="6">d6</button>
+      <button class="die" data-sides="8">d8</button>
+      <button class="die" data-sides="10">d10</button>
+      <button class="die" data-sides="12">d12</button>
+      <button class="die" data-sides="20">d20</button>
+      <button class="die" data-sides="100">d100</button>
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Mode de jet">
+      <button data-adv="normal" class="on">Normal</button>
+      <button data-adv="adv">Avantage</button>
+      <button data-adv="dis">Désavantage</button>
+    </div>
+    <label>Modificateur <input id="rollMod" type="number" value="0" step="1"></label>
+    <label class="check"><input id="rollSecret" type="checkbox"> Jet secret (MJ seul)</label>
+    <form id="rollForm" class="row">
+      <input id="rollFormula" placeholder="Formule libre (ex. 4d6kh3+2)" maxlength="60" autocomplete="off">
+      <button type="submit">Lancer</button>
+    </form>
+  </section>
+  <section>
+    <h3>Jet de pool (d10)</h3>
+    <form id="poolForm">
+      <label>Dés normaux <input id="poolNormal" type="number" min="0" max="30" value="0" step="1"></label>
+      <label>Dés Désespoir <input id="poolHunger" type="number" min="0" max="10" value="0" step="1"></label>
+      <label>Difficulté <input id="poolDifficulty" type="number" min="1" max="20" value="3" step="1"></label>
+      <button type="submit" class="big">Lancer</button>
+    </form>
+    <p class="hint">Dés Désespoir pré-remplis depuis la jauge de cellule, modifiables avant de lancer. Un 1 sur ces dés déclenche Overreach (test réussi, Danger augmente) ou Despair (test raté) — un 1 sur les dés normaux ne compte pas.</p>
+  </section>
+  <section>
+    <h3>Historique</h3>
+    <ul id="diceLog" class="plain"></ul>
+  </section>
+  <section>
+    <h3>Personnage</h3>
+    <div class="player-only">
+      <div class="stat-track">
+        <span class="stat-track-label">PV</span>
+        <div class="box-grid dmg-grid" id="hpBoxes"></div>
+      </div>
+      <div class="stat-track">
+        <span class="stat-track-label">Volonté</span>
+        <div class="box-grid dmg-grid" id="willpowerBoxes"></div>
+      </div>
+      <div class="stat-track">
+        <span class="stat-track-label" id="hungerBoxesMiniLabel">Faim</span>
+        <div class="box-grid" id="hungerBoxesMini"></div>
+      </div>
+    </div>
+    <div class="character-menu">
+      <button id="btnSheet">📋 Fiche de personnage</button>
+      <button id="btnJournal">📔 Journal</button>
+    </div>
+  </section>
+</aside>
+
+<aside id="panel">
+  <section id="secSel" hidden>
+    <h3>Jeton sélectionné</h3>
+    <label>Nom <input id="selName" maxlength="24"></label>
+    <label>Couleur <input id="selColor" type="color"></label>
+    <label class="gm">Taille
+      <select id="selSize">
+        <option value="0.5">Petite (½ case)</option>
+        <option value="1">Normale (1 case)</option>
+        <option value="2">Grande (2 cases)</option>
+        <option value="3">Très grande (3)</option>
+        <option value="4">Gigantesque (4)</option>
+      </select>
+    </label>
+    <label class="gm check"><input id="selHidden" type="checkbox"> Caché aux joueurs</label>
+    <div id="selConditions">
+      <span class="stat-track-label">Conditions</span>
+      <ul id="selConditionList" class="plain"></ul>
+      <div class="row">
+        <input id="selConditionInput" maxlength="20" placeholder="Ajouter une condition…">
+        <button id="selConditionAdd" type="button">+</button>
+      </div>
+    </div>
+    <button id="selDelete" class="gm danger">Supprimer ce PNJ</button>
+    <div id="npcQuick" class="gm" hidden>
+      <h4>Fiche PNJ rapide</h4>
+      <div class="sheet-row3">
+        <label>PV <input id="npcHp" type="number" min="0" max="999" step="1"></label>
+        <label>PV max <input id="npcHpMax" type="number" min="1" max="999" step="1"></label>
+      </div>
+      <div class="box-grid" id="npcHpBoxes"></div>
+      <label>Traits (attaques, résistances…)
+        <textarea id="npcTraits" rows="3" maxlength="500"></textarea>
+      </label>
+      <label>Notes
+        <textarea id="npcNotes" rows="3" maxlength="500"></textarea>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h3>Jetons</h3>
+    <ul id="tokenList" class="plain"></ul>
+    <div class="gm addnpc">
+      <input id="npcName" placeholder="Nom du PNJ" maxlength="24">
+      <input id="npcColor" type="color" value="#8b1e1e" aria-label="Couleur du PNJ">
+      <button id="npcAdd">Ajouter</button>
+    </div>
+  </section>
+
+  <section class="gm" id="secInitiative">
+    <h3>Initiative</h3>
+    <p class="hint">Round <span id="initRound">1</span></p>
+    <ol id="initiativeList" class="plain"></ol>
+    <div class="row">
+      <select id="initTokenSelect"></select>
+      <input id="initScoreInput" type="number" value="0" step="1" style="width:60px">
+      <button id="initAdd" type="button">+</button>
+    </div>
+    <div class="row">
+      <button id="initNext" type="button">Tour suivant ▶</button>
+      <button id="initClear" type="button">Terminer la scène</button>
+    </div>
+  </section>
+
+  <section class="gm">
+    <h3>Images</h3>
+    <ul id="imageList" class="plain"></ul>
+    <div class="row">
+      <button id="imageUpload">Ajouter une image…</button>
+    </div>
+    <input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <p class="hint">Glisse une image sur le plateau pour la déplacer · 👁 afficher/cacher aux joueurs · 🔒 verrouiller/déverrouiller le déplacement · 🗑 supprimer.</p>
+  </section>
+
+  <section class="gm">
+    <h3>Grille</h3>
+    <label>Taille d'une case (px) <input id="gridSize" type="number" min="20" max="200" step="1"></label>
+    <label class="check"><input id="gridVisible" type="checkbox"> Afficher la grille</label>
+    <label class="check"><input id="gridSnap" type="checkbox"> Aimanter les jetons</label>
+  </section>
+
+  <section class="gm">
+    <h3>Brouillard de guerre</h3>
+    <label class="check"><input id="fogEnabled" type="checkbox"> Activer le brouillard</label>
+    <div id="fogTools">
+      <div class="seg" role="radiogroup" aria-label="Outil">
+        <button data-tool="move" class="on">Déplacer</button>
+        <button data-tool="reveal">Révéler</button>
+        <button data-tool="hide">Cacher</button>
+      </div>
+      <label>Pinceau
+        <select id="brush">
+          <option value="1">1 case</option>
+          <option value="2">2 cases</option>
+          <option value="3" selected>3 cases</option>
+          <option value="5">5 cases</option>
+          <option value="8">8 cases</option>
+        </select>
+      </label>
+      <div class="row">
+        <button id="fogAll">Tout cacher</button>
+      </div>
+    </div>
+    <p class="hint">Astuce : avec un pinceau actif, clic droit ou molette pour déplacer/zoomer.</p>
+  </section>
+
+  <section>
+    <h3>Dessin</h3>
+    <div id="drawTools" role="radiogroup" aria-label="Outil de dessin">
+      <div class="seg">
+        <button data-draw="none" class="on">Aucun</button>
+        <button data-draw="pen">Pinceau</button>
+        <button data-draw="line">Ligne</button>
+        <button data-draw="arrow">Flèche</button>
+      </div>
+      <div class="seg">
+        <button data-draw="rect">Rectangle</button>
+        <button data-draw="ellipse">Cercle</button>
+        <button data-draw="eraser">Gomme</button>
+      </div>
+    </div>
+    <label>Couleur <input id="drawColor" type="color" value="#ff2d55"></label>
+    <label>Épaisseur
+      <select id="drawWidth">
+        <option value="2">Fin</option>
+        <option value="4" selected>Normal</option>
+        <option value="8">Épais</option>
+        <option value="16">Très épais</option>
+      </select>
+    </label>
+    <label class="check gm"><input id="drawGmLayer" type="checkbox"> Calque MJ (caché des joueurs)</label>
+    <button id="drawClearAll" class="gm">Tout effacer</button>
+    <p class="hint">Gomme : clique sur un trait pour l'effacer (le tien, ou n'importe lequel pour le MJ).</p>
+  </section>
+
+  <section>
+    <p class="hint">Molette : zoom · glisser dans le vide : déplacer la vue · F : recentrer.</p>
+  </section>
+</aside>
+
+<div id="sheetPanel" class="overlay" hidden>
+  <div class="overlay-card sheet-card">
+    <header class="sheet-head">
+      <h2>Fiche de personnage</h2>
+      <label class="gm sheet-player-select">Joueur
+        <select id="sheetPlayerSelect"></select>
+      </label>
+      <span class="spacer"></span>
+      <button id="btnSheetClose" aria-label="Fermer la fiche">✕</button>
+    </header>
+
+    <details class="sheet-help">
+      <summary>Aide à la création (répartition des points par priorité)</summary>
+      <div class="sheet-help-tables">
+        <table>
+          <caption>Attributs (priorités 4 / 3 / 2 / 1 points, un point offert par attribut)</caption>
+          <thead><tr><th>4 pts</th><th>3 pts</th><th>2 pts</th><th>1 pt</th></tr></thead>
+          <tbody><tr><td>×1</td><td>×3</td><td>×4</td><td>×1</td></tr></tbody>
+        </table>
+        <table>
+          <caption>Compétences (priorités 3 / 2 / 1 points)</caption>
+          <thead><tr><th>Profil</th><th>3 pts</th><th>2 pts</th><th>1 pt</th></tr></thead>
+          <tbody>
+            <tr><td>Touche à tout</td><td>×1</td><td>×8</td><td>×10</td></tr>
+            <tr><td>Équilibré</td><td>×3</td><td>×5</td><td>×7</td></tr>
+            <tr><td>Spécialiste (4 pts ×1 en plus)</td><td>×3</td><td>×3</td><td>×3</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <div class="sheet-body">
+      <section>
+        <div class="sheet-row3">
+          <label>Concept <input id="sheetConcept" maxlength="60"></label>
+          <label>Vertu <input id="sheetVirtue" maxlength="40"></label>
+          <label>Vice <input id="sheetVice" maxlength="40"></label>
+        </div>
+        <div class="sheet-row3">
+          <label>Santé (cases) <input id="sheetHealthMax" type="number" min="0" max="20" step="1"></label>
+          <label>Volonté (cases) <input id="sheetWillpowerMax" type="number" min="0" max="20" step="1"></label>
+        </div>
+        <div class="stat-track">
+          <span class="stat-track-label">Santé</span>
+          <div class="box-grid dmg-grid" id="sheetHealthBoxes"></div>
+        </div>
+        <div class="stat-track">
+          <span class="stat-track-label">Volonté</span>
+          <div class="box-grid dmg-grid" id="sheetWillpowerBoxes"></div>
+        </div>
+        <p class="hint">Clique une case pour la faire passer de vide à superficiel puis aggravé.</p>
+      </section>
+
+      <section>
+        <div class="sheet-row3">
+          <label>Libellé <input id="sheetHungerLabel" maxlength="30" placeholder="Faim"></label>
+          <label>Valeur <input id="sheetHunger" type="number" min="0" max="10" step="1"></label>
+          <label>Max <input id="sheetHungerMax" type="number" min="1" max="10" step="1"></label>
+        </div>
+        <div class="stat-track">
+          <span class="stat-track-label" id="hungerBoxesLabel">Faim</span>
+          <div class="box-grid" id="hungerBoxes"></div>
+        </div>
+        <div class="sheet-row3">
+          <label>Libellé <input id="sheetMoralityLabel" maxlength="30" placeholder="Humanité"></label>
+          <label>Valeur <input id="sheetMorality" type="number" min="0" max="10" step="1"></label>
+          <label>Max <input id="sheetMoralityMax" type="number" min="1" max="10" step="1"></label>
+        </div>
+        <div class="stat-track">
+          <span class="stat-track-label" id="moralityBoxesLabel">Humanité</span>
+          <div class="box-grid" id="moralityBoxes"></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Attributs</h3>
+        <div id="sheetAttributes" class="sheet-attr-grid"></div>
+      </section>
+
+      <section>
+        <h3>Compétences</h3>
+        <div id="sheetSkills" class="sheet-skill-grid"></div>
+      </section>
+
+      <section>
+        <h3>Mérites</h3>
+        <textarea id="sheetMerits" rows="3" maxlength="500" placeholder="Mérites, dons, atouts…"></textarea>
+      </section>
+      <section>
+        <h3 id="sheetPowersLegend">Disciplines / Dons / Atouts</h3>
+        <label>Libellé <input id="sheetPowersLabel" maxlength="40" placeholder="Disciplines / Dons / Atouts"></label>
+        <textarea id="sheetPowers" rows="4" maxlength="1000" placeholder="Disciplines, Dons de chasseur, Edges… (nom, niveau, description libre)"></textarea>
+      </section>
+      <section>
+        <h3>Notes</h3>
+        <textarea id="sheetNotes" rows="5" maxlength="2000" placeholder="Historique, contacts, matériel, mécaniques propres au type de personnage…"></textarea>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="journalPanel" class="overlay" hidden>
+  <div class="overlay-card sheet-card journal-book">
+    <header class="sheet-head">
+      <h2>Journal</h2>
+      <label class="gm sheet-player-select">Joueur
+        <select id="journalPlayerSelect"></select>
+      </label>
+      <span class="spacer"></span>
+      <button id="btnJournalClose" aria-label="Fermer le journal">✕</button>
+    </header>
+    <div class="journal-pages">
+      <div id="journalEntries" class="journal-entries"></div>
+      <form id="journalAddForm" class="journal-add player-only">
+        <textarea id="journalText" rows="3" maxlength="4000" placeholder="Nouvelle entrée…"></textarea>
+        <button type="submit">Ajouter au journal</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="diceFlash" aria-live="polite"></div>
+<div id="rollBanner" aria-live="polite"></div>
+
+<script src="/js/state.js"></script>
+<script src="/js/network.js"></script>
+<script src="/js/viewport.js"></script>
+<script src="/js/keyboard.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/danger.js"></script>
+<script src="/js/initiative.js"></script>
+<script src="/js/npc.js"></script>
+<script src="/js/dice-ui.js"></script>
+<script src="/js/links.js"></script>
+<script src="/js/sheet.js"></script>
+<script src="/js/journal.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

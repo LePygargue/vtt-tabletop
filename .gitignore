@@ -1,0 +1,6 @@
+data/
+.artifact-scratch/
+
+# Fichiers de travail non liés au code (capture debug, image de référence non utilisée par l'app)
+Capture d'écran*.png
+1024px-Hunter-_The_Reckoning_Basic_Mechanics_infographic.jpg

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plateau JDR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="home lobby">
+<main class="home-card">
+  <p class="top-account" id="account" hidden>
+    Connecté : <strong id="accountName"></strong>
+    <button id="logout">Se déconnecter</button>
+  </p>
+  <h1>Plateau JDR</h1>
+  <p class="lead">Un plateau partagé en temps réel pour tes parties de jeu de rôle : jetons, carte, grille et brouillard de guerre.</p>
+
+  <button id="create" class="primary big">Créer un salon (je suis le MJ)</button>
+
+  <div class="sep"><span>ou</span></div>
+
+  <form id="joinForm" class="row">
+    <input id="code" placeholder="Code du salon (ex. K7M2QX9A)" maxlength="8" autocomplete="off" spellcheck="false" aria-label="Code du salon">
+    <button type="submit">Rejoindre</button>
+  </form>
+  <p id="msg" class="error" role="alert"></p>
+
+  <section id="mine" hidden>
+    <h2>Mes salons de MJ</h2>
+    <ul id="mineList" class="plain"></ul>
+  </section>
+</main>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const msg = $('msg');
+
+  fetch('/api/me').then((r) => r.json()).then((data) => {
+    if (!data.user) return;
+    $('account').hidden = false;
+    $('accountName').textContent = data.user.displayName;
+  }).catch(() => {});
+  $('logout').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    location.href = '/login';
+  });
+
+  $('create').addEventListener('click', async () => {
+    msg.textContent = '';
+    try {
+      const r = await fetch('/api/rooms', { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Erreur');
+      try { localStorage.setItem('gm:' + data.id, data.gmKey); } catch (e) {}
+      location.href = '/r/' + data.id;
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  });
+
+  $('joinForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    msg.textContent = '';
+    let code = $('code').value.trim().toUpperCase();
+    const m = code.match(/[A-Z0-9]{8}$/); // accepte aussi un lien collé
+    if (!m) { msg.textContent = 'Le code compte 8 caractères.'; return; }
+    code = m[0];
+    const r = await fetch('/api/rooms/' + code);
+    if (!r.ok) { msg.textContent = "Ce salon n'existe pas."; return; }
+    location.href = '/r/' + code;
+  });
+
+  try {
+    const ids = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf('gm:') === 0) ids.push(k.slice(3));
+    }
+    if (ids.length) {
+      $('mine').hidden = false;
+      ids.forEach(async (id) => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '/r/' + id;
+        a.textContent = id;
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'danger';
+        del.textContent = 'Supprimer';
+        del.title = 'Supprimer définitivement ce salon';
+        del.addEventListener('click', async () => {
+          const label = a.textContent;
+          if (!confirm(`Supprimer définitivement "${label}" et tout son contenu (jetons, fiches, journaux, images) ?\n\nCette action est irréversible.`)) return;
+          del.disabled = true;
+          try {
+            const gmKey = localStorage.getItem('gm:' + id) || '';
+            const r = await fetch('/api/rooms/' + id, { method: 'DELETE', headers: { 'X-GM-Key': gmKey } });
+            if (r.ok || r.status === 404) {
+              try { localStorage.removeItem('gm:' + id); } catch (e) {}
+              li.remove();
+              return;
+            }
+            const data = await r.json().catch(() => ({}));
+            msg.textContent = data.error || 'Suppression impossible.';
+          } catch (e) {
+            msg.textContent = 'Suppression impossible.';
+          }
+          del.disabled = false;
+        });
+        li.appendChild(a);
+        li.appendChild(del);
+        $('mineList').appendChild(li);
+        try {
+          const r = await fetch('/api/rooms/' + id);
+          const data = await r.json();
+          if (data.name) a.textContent = data.name + ' (' + id + ')';
+        } catch (e) {}
+      });
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
