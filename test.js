@@ -183,6 +183,29 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('mauvaise clé MJ = simple joueur', () => assert.strictEqual(sb.role, 'player'));
   bad.ws.close();
 
+  // --- salon rattaché au compte du MJ (indépendant du navigateur) ---
+  const gmOther = new Client('MJ autre appareil');
+  await gmOther.login(base, 'gm', 'mj-password-1');
+  await gmOther.connectWs(base, wsBase);
+  gmOther.send({ t: 'join', room: created.id }); // aucune clé MJ fournie
+  const sgo = await gmOther.waitFor((m) => m.t === 'state');
+  check('le compte créateur est MJ sans clé (autre navigateur) et récupère la clé', () => {
+    assert.strictEqual(sgo.role, 'gm');
+    assert.strictEqual(sgo.gmKey, created.gmKey);
+  });
+  gmOther.ws.close();
+  check("la clé MJ n'est pas envoyée aux joueurs", () => assert.strictEqual(s1.gmKey, undefined));
+  const mineGm = await (await gm.authedFetch(base, '/api/rooms/mine')).json();
+  const mineP1 = await (await p1.authedFetch(base, '/api/rooms/mine')).json();
+  check('/api/rooms/mine liste les salons du MJ, pas ceux où on est joueur', () => {
+    assert(mineGm.rooms.some((r) => r.id === created.id));
+    assert(!mineP1.rooms.some((r) => r.id === created.id));
+  });
+  check('le rattachement MJ ↔ compte est persisté', () => {
+    const { rooms: live, serializeRoom } = require('./lib/rooms');
+    assert(serializeRoom(live.get(created.id)).gmUserIds.includes(gm.user.id));
+  });
+
   // --- déplacements (grille commune, pas besoin de mapId) ---
   p1.clear(); gm.clear(); p2.clear();
   p1.send({ t: 'move', id: s1.youToken, x: 333, y: 271, final: true });
@@ -593,8 +616,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   doomed.send({ t: 'join', room: toDelete.id });
   await doomed.waitFor((m) => m.t === 'state');
 
-  const badKeyDel = await gm.authedFetch(base, `/api/rooms/${toDelete.id}`, { method: 'DELETE', headers: { 'X-GM-Key': 'x'.repeat(48) } });
-  check('suppression refusée avec une mauvaise clé MJ', () => assert.strictEqual(badKeyDel.status, 403));
+  const badKeyDel = await p1.authedFetch(base, `/api/rooms/${toDelete.id}`, { method: 'DELETE', headers: { 'X-GM-Key': 'x'.repeat(48) } });
+  check('suppression refusée à un autre compte avec une mauvaise clé MJ',() => assert.strictEqual(badKeyDel.status, 403));
 
   doomed.clear();
   const okDel = await gm.authedFetch(base, `/api/rooms/${toDelete.id}`, { method: 'DELETE', headers: { 'X-GM-Key': toDelete.gmKey } });
@@ -618,8 +641,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   // --- images : upload, affichage, déplacement, visibilité, ordre, suppression ---
   gm.clear(); p1.clear();
-  r = await gm.authedFetch(base, `/api/rooms/${created.id}/image?w=6000&h=6000`, { method: 'POST', headers: { 'X-GM-Key': 'nope' }, body: PNG });
-  check('upload d\'image refusé sans clé MJ', () => assert.strictEqual(r.status, 403));
+  r = await p1.authedFetch(base, `/api/rooms/${created.id}/image?w=6000&h=6000`, { method: 'POST', headers: { 'X-GM-Key': 'nope' }, body: PNG });
+  check('upload d\'image refusé à un joueur sans clé MJ', () => assert.strictEqual(r.status, 403));
+  r = await gm.authedFetch(base, `/api/rooms/${created.id}/image?w=6000&h=6000`, { method: 'POST', body: Buffer.from('pas une image') });
+  check('le compte MJ est reconnu sans clé en en-tête (ici refusé pour le format seulement)', () => assert.strictEqual(r.status, 415));
   r = await fetch(`${base}/api/rooms/${created.id}/image?w=6000&h=6000`, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
   check('upload d\'image refusé sans connexion (même avec la bonne clé MJ)', () => assert.strictEqual(r.status, 401));
   r = await gm.authedFetch(base, `/api/rooms/${created.id}/image?w=6000&h=6000`, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: Buffer.from('<svg onload=alert(1)>') });

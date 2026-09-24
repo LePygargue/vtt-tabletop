@@ -60,6 +60,10 @@ function handle(m) {
   switch (m.t) {
     case 'state': {
       role = m.role;
+      if (m.gmKey) {
+        gmKey = m.gmKey; // MJ reconnu par son compte : clé récupérée pour ce navigateur
+        try { localStorage.setItem('gm:' + roomId, m.gmKey); } catch (e) {}
+      }
       youToken = m.youToken;
       document.body.classList.toggle('is-gm', isGM());
       $('roleBadge').textContent = isGM() ? 'MJ' : 'Joueur';

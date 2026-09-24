@@ -73,60 +73,79 @@
     location.href = '/r/' + code;
   });
 
-  try {
-    const ids = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf('gm:') === 0) ids.push(k.slice(3));
-    }
-    if (ids.length) {
-      $('mine').hidden = false;
-      ids.forEach(async (id) => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '/r/' + id;
-        a.textContent = id;
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'danger';
-        del.textContent = 'Supprimer';
-        del.title = 'Supprimer définitivement ce salon';
-        del.addEventListener('click', async () => {
-          const label = a.textContent;
-          const ok = await confirmDialog({
-            title: 'Supprimer le salon',
-            message: `Supprimer définitivement « ${label} » et tout son contenu (jetons, fiches, journaux, images) ?\n\nCette action est irréversible.`,
-            confirmLabel: 'Supprimer définitivement',
-            danger: true,
-          });
-          if (!ok) return;
-          del.disabled = true;
-          try {
-            const gmKey = localStorage.getItem('gm:' + id) || '';
-            const r = await fetch('/api/rooms/' + id, { method: 'DELETE', headers: { 'X-GM-Key': gmKey } });
-            if (r.ok || r.status === 404) {
-              try { localStorage.removeItem('gm:' + id); } catch (e) {}
-              li.remove();
-              return;
-            }
-            const data = await r.json().catch(() => ({}));
-            msg.textContent = data.error || 'Suppression impossible.';
-          } catch (e) {
-            msg.textContent = 'Suppression impossible.';
-          }
-          del.disabled = false;
-        });
-        li.appendChild(a);
-        li.appendChild(del);
-        $('mineList').appendChild(li);
-        try {
-          const r = await fetch('/api/rooms/' + id);
-          const data = await r.json();
-          if (data.name) a.textContent = data.name + ' (' + id + ')';
-        } catch (e) {}
+  function addMine(id, name) {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '/r/' + id;
+    a.textContent = name ? name + ' (' + id + ')' : id;
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'danger';
+    del.textContent = 'Supprimer';
+    del.title = 'Supprimer définitivement ce salon';
+    del.addEventListener('click', async () => {
+      const label = a.textContent;
+      const ok = await confirmDialog({
+        title: 'Supprimer le salon',
+        message: `Supprimer définitivement « ${label} » et tout son contenu (jetons, fiches, journaux, images) ?
+
+Cette action est irréversible.`,
+        confirmLabel: 'Supprimer définitivement',
+        danger: true,
       });
+      if (!ok) return;
+      del.disabled = true;
+      try {
+        let gmKey = '';
+        try { gmKey = localStorage.getItem('gm:' + id) || ''; } catch (e) {}
+        const r = await fetch('/api/rooms/' + id, { method: 'DELETE', headers: { 'X-GM-Key': gmKey } });
+        if (r.ok || r.status === 404) {
+          try { localStorage.removeItem('gm:' + id); } catch (e) {}
+          li.remove();
+          if (!$('mineList').children.length) $('mine').hidden = true;
+          return;
+        }
+        const data = await r.json().catch(() => ({}));
+        msg.textContent = data.error || 'Suppression impossible.';
+      } catch (e) {
+        msg.textContent = 'Suppression impossible.';
+      }
+      del.disabled = false;
+    });
+    li.appendChild(a);
+    li.appendChild(del);
+    $('mineList').appendChild(li);
+    $('mine').hidden = false;
+  }
+
+  // Salons rattachés au compte (serveur), complétés par les clés MJ connues de ce
+  // navigateur : ouvrir un de ces derniers le rattache au compte.
+  (async () => {
+    const shown = new Set();
+    try {
+      const r = await fetch('/api/rooms/mine');
+      if (r.ok) {
+        for (const room of (await r.json()).rooms) {
+          shown.add(room.id);
+          addMine(room.id, room.name);
+        }
+      }
+    } catch (e) {}
+    const local = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf('gm:') === 0 && !shown.has(k.slice(3))) local.push(k.slice(3));
+      }
+    } catch (e) {}
+    for (const id of local) {
+      try {
+        const r = await fetch('/api/rooms/' + id);
+        if (!r.ok) continue; // salon disparu : on ne l'affiche plus
+        addMine(id, (await r.json()).name);
+      } catch (e) {}
     }
-  } catch (e) {}
+  })();
 })();
 </script>
 </body>

@@ -14,7 +14,7 @@ Le site est réservé aux comptes que tu crées toi-même (pas d'auto-inscriptio
     node scripts/manage-users.js passwd alice nouveau-mdp
     node scripts/manage-users.js remove alice
 
-Redémarre le serveur après toute modification de comptes pour qu'elle soit prise en compte. Une fois connecté (`/login`), un compte peut créer un salon (« Créer un salon »), puis envoyer aux joueurs le bouton « Lien joueurs » (ils doivent avoir chacun leur propre compte pour s'y connecter). Le « Lien MJ » (secret) permet de reprendre la main de MJ sur ce salon précis depuis un autre appareil — la connexion au compte et le rôle de MJ d'un salon sont deux choses indépendantes.
+Redémarre le serveur après toute modification de comptes pour qu'elle soit prise en compte. Une fois connecté (`/login`), un compte peut créer un salon (« Créer un salon »), puis envoyer aux joueurs le bouton « Lien joueurs » (ils doivent avoir chacun leur propre compte pour s'y connecter). Le salon est rattaché au compte qui l'a créé : ce compte en est MJ sur tous ses appareils et le retrouve dans « Mes salons de MJ ». Le « Lien MJ » (secret) donne aussi le rôle de MJ, et rattache durablement le salon au compte qui l'ouvre (co-MJ, ou salons créés avant ce rattachement).
 
 ## Utilisation
 
