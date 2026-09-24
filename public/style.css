@@ -566,6 +566,8 @@ section.collapsed > :not(h3) { display: none !important; }
 #poolForm button[type="submit"] { margin-top: 6px; }
 .dice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .die { padding: 10px 4px; font-weight: 600; }
+#dicePanel label.dice-count { margin: 0; gap: 4px; justify-content: center; font-weight: 600; color: var(--muted); }
+#dicePanel #rollCount { width: 100%; min-width: 0; padding-left: 4px; padding-right: 4px; text-align: center; }
 #rollForm { margin-top: 10px; }
 #diceLog { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 #diceLog li { padding: 6px 8px; border-radius: 6px; background: var(--panel-2); font-size: 16px; }
@@ -596,20 +598,6 @@ section.collapsed > :not(h3) { display: none !important; }
 .dv.hunger-crit { color: #e0523f; }
 .dv.hunger-ok { color: #c9683f; }
 .dv.hunger-fail { color: var(--danger); }
-
-#diceFlash {
-  position: fixed; top: calc(var(--topbar-h, 52px) + 8px); left: 50%; transform: translateX(-50%);
-  display: flex; flex-direction: column; gap: 6px; align-items: center;
-  pointer-events: none; z-index: 5;
-}
-.roll-flash {
-  display: flex; align-items: baseline; gap: 8px;
-  background: var(--panel); border: 1px solid var(--accent); border-radius: 8px;
-  padding: 8px 16px; font-size: 16px; white-space: nowrap;
-  opacity: 0; transform: translateY(-8px); transition: opacity .2s, transform .2s;
-}
-.roll-flash.show { opacity: 1; transform: translateY(0); }
-.roll-flash .rf-total { font-size: 22px; font-weight: 700; color: var(--accent); }
 
 #rollBanner {
   position: fixed; left: 12px; right: 12px; bottom: 18px;
@@ -896,7 +884,9 @@ kbd {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 40px 56px;
   border-radius: 4px;
   color: var(--ink);
@@ -910,7 +900,27 @@ kbd {
     0 10px 26px rgba(0, 0, 0, .55),
     inset 0 0 0 1px rgba(255, 255, 255, .25);
 }
-.journal-entries { column-count: 2; column-gap: 64px; }
+/* Pagination façon livre : la hauteur est fixe, les entrées remplissent la page de
+   gauche puis celle de droite, et le surplus déborde en colonnes suivantes
+   (doubles pages), qu'on fait défiler horizontalement (journal.js). */
+.journal-viewport { position: relative; flex: 1; min-height: 160px; overflow: hidden; }
+.journal-entries {
+  position: absolute; inset: 0;
+  column-count: 2; column-gap: 64px; column-fill: auto;
+  transition: transform .25s ease;
+}
+.journal-end { height: 0; }
+.journal-nav {
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 10px; color: var(--ink-muted);
+  font-family: var(--font-display); font-size: 14px; letter-spacing: .09em; text-transform: uppercase;
+}
+.journal-nav button {
+  padding: 0 10px; font-size: 22px; line-height: 1.2;
+  background: transparent; border: 1px solid transparent; color: var(--ink);
+}
+.journal-nav button:hover:not(:disabled) { border-color: var(--ink-muted); background: rgba(58, 44, 24, .08); }
+.journal-nav button:disabled { color: var(--parchment-line); cursor: default; }
 .journal-pages .hint { color: var(--ink-muted); font-style: italic; }
 .journal-entry { break-inside: avoid; margin-bottom: 26px; }
 .journal-entry-meta {
@@ -931,7 +941,8 @@ kbd {
   color: var(--ink); font: inherit; border-radius: 0; padding: 4px 2px;
 }
 .journal-add {
-  margin-top: 18px; padding-top: 18px;
+  flex: none;
+  margin-top: 12px; padding-top: 14px;
   border-top: 1px solid var(--parchment-line);
   display: flex; flex-direction: column; gap: 10px;
 }
@@ -960,4 +971,7 @@ kbd {
   .sheet-skill-row { grid-template-columns: minmax(0, 1.2fr) 46px minmax(0, 1fr); }
   .journal-pages { padding: 26px 20px; }
   .journal-entries { column-count: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-entries { transition: none; }
 }

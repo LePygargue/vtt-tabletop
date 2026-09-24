@@ -6,20 +6,69 @@
  */
 let currentJournal = [];
 let journalTokenId = null; // MJ uniquement : jeton du joueur actuellement affiché
+let journalShown = { tokenId: null, count: 0 }; // dernier rendu, pour savoir quand aller à la dernière page
+let journalSpread = 0; // double page affichée (0 = pages 1-2)
 
 function formatJournalDate(ts) {
   return new Date(ts).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function renderJournal() {
+/**
+ * Pagination : les colonnes CSS (hauteur fixe) remplissent la page de gauche, puis
+ * celle de droite, puis débordent sur les doubles pages suivantes ; on n'en montre
+ * qu'une à la fois en décalant le bloc d'une largeur de double page.
+ */
+function layoutJournal(goToEnd = false) {
+  if ($('journalPanel').hidden) return;
+  const root = $('journalEntries');
+  const view = $('journalViewport');
+  const cs = getComputedStyle(root);
+  const perSpread = parseInt(cs.columnCount, 10) || 1; // 2 (double page) ou 1 (petit écran)
+  const gap = parseFloat(cs.columnGap) || 0;
+  const width = view.clientWidth;
+  const colStep = (width - (perSpread - 1) * gap) / perSpread + gap;
+  // Colonne où tombe la fin du texte (repère vide placé après la dernière entrée)
+  const end = root.querySelector('.journal-end');
+  const endX = end ? end.getBoundingClientRect().left - root.getBoundingClientRect().left : 0; // même décalage des deux côtés
+  const spreads = Math.floor(Math.max(0, endX + 1) / colStep / perSpread) + 1;
+  journalSpread = goToEnd ? spreads - 1 : Math.min(Math.max(0, journalSpread), spreads - 1);
+  root.style.transform = `translateX(${-journalSpread * (width + gap)}px)`;
+  const first = journalSpread * perSpread + 1;
+  $('journalPageLabel').textContent = perSpread > 1
+    ? `Pages ${first}–${first + 1} sur ${spreads * perSpread}`
+    : `Page ${first} sur ${spreads}`;
+  $('journalPrev').disabled = journalSpread === 0;
+  $('journalNext').disabled = journalSpread >= spreads - 1;
+}
+function turnJournalPage(delta) {
+  journalSpread += delta;
+  layoutJournal();
+}
+$('journalPrev').addEventListener('click', () => turnJournalPage(-1));
+$('journalNext').addEventListener('click', () => turnJournalPage(1));
+window.addEventListener('resize', () => layoutJournal());
+$('journalPanel').addEventListener('keydown', (e) => {
+  if (e.target.closest('textarea, input, select')) return;
+  if (e.key === 'ArrowLeft') turnJournalPage(-1);
+  else if (e.key === 'ArrowRight') turnJournalPage(1);
+});
+
+/** Entrées dans l'ordre d'écriture (la plus ancienne en premier), comme un vrai carnet. */
+function renderJournal(goToEnd = false) {
   const root = $('journalEntries');
   root.textContent = '';
-  const list = [...currentJournal].sort((a, b) => b.ts - a.ts);
+  const list = [...currentJournal].sort((a, b) => a.ts - b.ts);
+  // Dernière double page (là où l'on écrit) à l'ouverture, au changement de joueur
+  // ou après un ajout — pas lors d'une modification ou d'une suppression.
+  if (journalShown.tokenId !== journalTokenId || list.length > journalShown.count) goToEnd = true;
+  journalShown = { tokenId: journalTokenId, count: list.length };
   if (!list.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
     empty.textContent = 'Aucune entrée pour l\'instant.';
     root.appendChild(empty);
+    journalSpread = 0;
+    layoutJournal();
     return;
   }
   const mine = !isGM();
@@ -57,6 +106,10 @@ function renderJournal() {
     }
     root.appendChild(card);
   }
+  const end = document.createElement('div');
+  end.className = 'journal-end';
+  root.appendChild(end);
+  layoutJournal(goToEnd);
 }
 
 function startEditJournalEntry(entry, textEl, actionsEl) {
@@ -80,6 +133,7 @@ function startEditJournalEntry(entry, textEl, actionsEl) {
   cancel.addEventListener('click', () => renderJournal());
   editBar.append(save, cancel);
   ta.insertAdjacentElement('afterend', editBar);
+  layoutJournal(); // la zone d'édition peut ajouter une page
 }
 
 $('journalAddForm').addEventListener('submit', (e) => {
@@ -105,9 +159,9 @@ $('btnJournal').addEventListener('click', () => {
   if (isGM()) {
     const tokenId = refreshPlayerOptions('journalPlayerSelect');
     if (tokenId && tokenId !== journalTokenId) openJournalForToken(tokenId);
-    else renderJournal();
+    else renderJournal(true);
   } else {
-    renderJournal();
+    renderJournal(true);
   }
 });
 $('btnJournalClose').addEventListener('click', () => { $('journalPanel').hidden = true; });

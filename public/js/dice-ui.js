@@ -8,9 +8,7 @@ function addRoll(roll) {
   rolls.push(roll);
   if (rolls.length > 50) rolls.shift();
   renderDiceLog();
-  let revealMs = 650;
-  if (roll.role === 'gm') flashRoll(roll);
-  else revealMs = showRollBanner(roll);
+  const revealMs = showRollBanner(roll); // même bannière animée pour tous, MJ compris
   if (roll.outcome === 'overreach') overreachRevealAt = performance.now() + revealMs;
   // annoncé une fois l'animation de la bannière finie, pas face par face
   const text = `${roll.by}${roll.private ? ' (secret)' : ''} : ${roll.total}${successSuffix(roll).replace(/\s*·\s*/g, ', ')}`;
@@ -212,7 +210,7 @@ function buildDiceTray(dice) {
   }
   return { tray, landMs: still ? 150 : (shown.length - 1) * RDIE_STAGGER_MS + RDIE_TUMBLE_MS };
 }
-/** Bannière du bas, plus visible, pour les jets des joueurs (pas ceux du MJ). Renvoie le délai avant le résultat (ms). */
+/** Bannière du bas avec dés animés, pour tous les jets (joueurs et MJ). Renvoie le délai avant le résultat (ms). */
 function showRollBanner(roll) {
   const wrap = document.createElement('div');
   wrap.className = 'roll-banner';
@@ -426,22 +424,6 @@ function renderDiceLog() {
   }
   ul.scrollTop = ul.scrollHeight;
 }
-function flashRoll(roll) {
-  const el = document.createElement('div');
-  el.className = 'roll-flash';
-  const who = document.createElement('span');
-  who.textContent = roll.by + (roll.private ? ' (secret)' : '') + ' :';
-  const total = document.createElement('span');
-  total.className = 'rf-total';
-  total.textContent = roll.total;
-  el.append(who, total);
-  $('diceFlash').appendChild(el);
-  requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => {
-    el.classList.remove('show');
-    setTimeout(() => el.remove(), 250);
-  }, 3800);
-}
 function sendRoll(expr, opts = {}) {
   expr = String(expr || '').trim();
   if (!expr) return;
@@ -450,7 +432,11 @@ function sendRoll(expr, opts = {}) {
   send(msg);
 }
 function quickRoll(sides) {
-  let expr = rollAdv === 'adv' ? `2d${sides}kh1` : rollAdv === 'dis' ? `2d${sides}kl1` : `1d${sides}`;
+  const count = Math.min(100, Math.max(1, parseInt($('rollCount').value, 10) || 1));
+  $('rollCount').value = count;
+  // Avantage/Désavantage : un seul dé gardé ; avec plusieurs dés, on les lance tous normalement.
+  let expr = count > 1 ? `${count}d${sides}`
+    : rollAdv === 'adv' ? `2d${sides}kh1` : rollAdv === 'dis' ? `2d${sides}kl1` : `1d${sides}`;
   const mod = parseInt($('rollMod').value, 10) || 0;
   if (mod) expr += (mod > 0 ? '+' : '') + mod;
   sendRoll(expr);

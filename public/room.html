@@ -51,11 +51,12 @@
       <button class="die" data-sides="12">d12</button>
       <button class="die" data-sides="20">d20</button>
       <button class="die" data-sides="100">d100</button>
+      <label class="dice-count tip-right" data-tip="Nombre de dés lancés par les boutons (ex. 3 puis d100 = 3d100). Avantage/Désavantage : seulement avec 1 dé."><span aria-hidden="true">×</span><input id="rollCount" type="number" min="1" max="100" value="1" step="1" aria-label="Nombre de dés"></label>
     </div>
     <div class="seg" role="radiogroup" aria-label="Mode de jet">
-      <button data-adv="normal" class="on tip-left" role="radio" aria-checked="true" data-tip="Normal : les boutons de dés ci-dessus lancent un seul dé.">Normal</button>
-      <button data-adv="adv" role="radio" aria-checked="false" data-tip="Avantage : chaque bouton de dé lance deux dés et garde le meilleur (ex. 2d20kh1). Ne s'applique pas au jet de pool.">Avantage</button>
-      <button data-adv="dis" class="tip-right" role="radio" aria-checked="false" data-tip="Désavantage : chaque bouton de dé lance deux dés et garde le moins bon (ex. 2d20kl1). Ne s'applique pas au jet de pool.">Désavantage</button>
+      <button data-adv="normal" class="on tip-left" role="radio" aria-checked="true" data-tip="Normal : les boutons de dés ci-dessus lancent le nombre de dés indiqué (×).">Normal</button>
+      <button data-adv="adv" role="radio" aria-checked="false" data-tip="Avantage : chaque bouton de dé lance deux dés et garde le meilleur (ex. 2d20kh1). Uniquement avec 1 dé ; ne s'applique pas au jet de pool.">Avantage</button>
+      <button data-adv="dis" class="tip-right" role="radio" aria-checked="false" data-tip="Désavantage : chaque bouton de dé lance deux dés et garde le moins bon (ex. 2d20kl1). Uniquement avec 1 dé ; ne s'applique pas au jet de pool.">Désavantage</button>
     </div>
     <label>Modificateur <input id="rollMod" type="number" value="0" step="1"></label>
     <label class="check"><input id="rollSecret" type="checkbox"> Jet secret (MJ seul)</label>
@@ -400,7 +401,14 @@
       <button id="btnJournalClose" aria-label="Fermer le journal">✕</button>
     </header>
     <div class="journal-pages">
-      <div id="journalEntries" class="journal-entries"></div>
+      <div id="journalViewport" class="journal-viewport">
+        <div id="journalEntries" class="journal-entries"></div>
+      </div>
+      <nav class="journal-nav" aria-label="Pages du journal">
+        <button type="button" id="journalPrev" aria-label="Pages précédentes">‹</button>
+        <span id="journalPageLabel" aria-live="polite"></span>
+        <button type="button" id="journalNext" aria-label="Pages suivantes">›</button>
+      </nav>
       <form id="journalAddForm" class="journal-add player-only">
         <textarea id="journalText" rows="3" maxlength="4000" placeholder="Nouvelle entrée…"></textarea>
         <button type="submit">Ajouter au journal</button>
@@ -440,7 +448,6 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
-<div id="diceFlash"></div>
 <div id="gaugeFlash" aria-hidden="true"></div>
 <div id="gaugeAlerts" aria-hidden="true"></div>
 <div id="rollBanner"></div>
