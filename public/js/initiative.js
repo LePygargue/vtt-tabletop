@@ -3,6 +3,7 @@
  * Tracker d'initiative / tour de scène (MJ : gestion complète, joueurs : badge
  * lecture seule dans la barre du haut). État synchronisé via `initiative` (state.js).
  */
+let lastAnnouncedTurn = ''; // évite de réannoncer le même tour à chaque rafraîchissement
 function renderInitiative() {
   const ol = $('initiativeList');
   if (ol) {
@@ -28,6 +29,7 @@ function renderInitiative() {
         });
         const rm = document.createElement('button');
         rm.textContent = '✕';
+        rm.setAttribute('aria-label', `Retirer ${e.name} de l'initiative`);
         rm.addEventListener('click', () => send({ t: 'initiative', op: 'remove', tokenId: e.tokenId }));
         li.append(score, rm);
       } else {
@@ -51,8 +53,12 @@ function renderInitiative() {
     const name = (entry && entry.name) || (t && t.name) || '?';
     badge.hidden = false;
     badge.textContent = `Tour : ${name} · Round ${initiative.round}`;
+    const turn = `${initiative.activeTokenId}:${initiative.round}`;
+    if (turn !== lastAnnouncedTurn) announce(`Tour de ${name}, round ${initiative.round}`);
+    lastAnnouncedTurn = turn;
   } else {
     badge.hidden = true;
+    lastAnnouncedTurn = '';
   }
 }
 
@@ -79,7 +85,19 @@ $('initAdd').addEventListener('click', () => {
   send({ t: 'initiative', op: 'add', tokenId, score });
   $('initScoreInput').value = 0;
 });
+$('initAddRoll').addEventListener('click', () => {
+  const tokenId = $('initTokenSelect').value;
+  if (!tokenId) return;
+  const mod = parseInt($('initScoreInput').value, 10) || 0;
+  send({ t: 'initiative', op: 'addRoll', tokenId, mod });
+  $('initScoreInput').value = 0;
+});
 $('initNext').addEventListener('click', () => send({ t: 'initiative', op: 'next' }));
-$('initClear').addEventListener('click', () => {
-  if (confirm("Terminer la scène et vider l'ordre d'initiative ?")) send({ t: 'initiative', op: 'clear' });
+$('initClear').addEventListener('click', async () => {
+  const ok = await confirmDialog({
+    title: 'Terminer la scène',
+    message: "Terminer la scène et vider l'ordre d'initiative ?",
+    confirmLabel: 'Terminer',
+  });
+  if (ok) send({ t: 'initiative', op: 'clear' });
 });

@@ -34,14 +34,17 @@ const tokens = new Map(); // tous les jetons du salon
 const images = new Map(); // toutes les images posées sur la grille commune
 const rolls = [];
 const npcSheets = new Map(); // tokenId -> fiche PNJ rapide (MJ uniquement, chargée à la demande)
+const npcVisibility = new Map(); // tokenId de PNJ -> [tokenId de PC] ayant une dérogation quand il est caché
 let initiative = { active: false, round: 1, activeTokenId: null, entries: [] };
 let dangerLevel = 0; // niveau de dangerosité de la scène (façon étoiles GTA)
 let desperationLevel = 0; // Désespoir : jauge partagée par toute la cellule (Hunter)
+let bannedPlayers = []; // [{ playerId, name }] — MJ uniquement
 let online = new Set();
 let selectedId = null;
 let tool = 'move'; // move | reveal | hide (MJ, brouillard) — outil courant
 let drawTool = 'none'; // none | pen | line | arrow | rect | ellipse | eraser
 let spaceDown = false; // barre espace maintenue : force le panoramique quel que soit l'outil
 let firstState = true; // pour ne cadrer automatiquement la vue qu'à la toute première connexion
+const pendingErases = new Map(); // id de trait -> trait effacé par nous, en attente de confirmation (undo)
 
 const isGM = () => role === 'gm';

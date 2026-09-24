@@ -89,6 +89,8 @@ function handle(m) {
       renderDanger();
       desperationLevel = m.desperation || 0;
       renderDesperation();
+      bannedPlayers = m.bannedPlayers || [];
+      renderBannedList();
       if (youToken && tokens.has(youToken)) {
         selectedId = youToken;
       } else if (selectedId && !tokens.has(selectedId)) selectedId = null;
@@ -111,6 +113,10 @@ function handle(m) {
       refreshUI();
       break;
     }
+    case 'bannedList':
+      bannedPlayers = m.bannedPlayers || [];
+      renderBannedList();
+      break;
     case 'move': {
       const t = tokens.get(m.id);
       if (!t) break;
@@ -145,9 +151,11 @@ function handle(m) {
     case 'imageMove': {
       const img = images.get(m.id);
       if (!img) break;
-      if (viewport.drag && viewport.drag.kind === 'image' && viewport.drag.id === m.id && !m.final) break;
+      if (viewport.drag && (viewport.drag.kind === 'image' || viewport.drag.kind === 'imageResize') && viewport.drag.id === m.id && !m.final) break;
       img.x = m.x;
       img.y = m.y;
+      if (m.width) img.width = m.width;
+      if (m.height) img.height = m.height;
       viewport.dirty = true;
       break;
     }
@@ -193,8 +201,11 @@ function handle(m) {
       break;
     }
     case 'drawRemove': {
+      const erased = pendingErases.get(m.id);
+      pendingErases.delete(m.id);
       viewport.strokes.delete(m.id);
       viewport.dirty = true;
+      if (erased) toast('Trait effacé.', { label: 'Annuler', onClick: () => resendStroke(erased) });
       break;
     }
     case 'drawClear': {
@@ -217,22 +228,35 @@ function handle(m) {
       renderInitiative();
       viewport.dirty = true;
       break;
-    case 'danger':
+    case 'danger': {
+      const prev = dangerLevel;
       dangerLevel = m.level;
       renderDanger();
+      gaugeChanged('danger', prev, m.level);
       break;
-    case 'desperation':
+    }
+    case 'desperation': {
+      const prev = desperationLevel;
       desperationLevel = m.level;
       renderDesperation();
+      gaugeChanged('desperation', prev, m.level);
       break;
+    }
     case 'npcData':
       npcSheets.set(m.tokenId, m.sheet);
+      npcVisibility.set(m.tokenId, m.visibleToTokens || []);
       if (selectedId === m.tokenId) renderNpcQuick();
       break;
-    case 'online':
-      online = new Set(m.tokenIds);
+    case 'online': {
+      const next = new Set(m.tokenIds);
+      const joined = [...next].filter((id) => !online.has(id)).map((id) => tokens.get(id)).filter(Boolean).map((t) => t.name);
+      const left = [...online].filter((id) => !next.has(id)).map((id) => tokens.get(id)).filter(Boolean).map((t) => t.name);
+      online = next;
       renderTokenList();
+      if (joined.length) toast(`${joined.join(', ')} ${joined.length > 1 ? 'ont rejoint' : 'a rejoint'} la partie.`);
+      else if (left.length) toast(`${left.join(', ')} ${left.length > 1 ? 'ont quitté' : 'a quitté'} la partie.`);
       break;
+    }
     case 'selectToken':
       selectedId = m.id;
       refreshUI();
@@ -242,11 +266,11 @@ function handle(m) {
       break;
     case 'error':
       toast(m.message || 'Erreur');
-      if (m.code === 'no_room' || m.code === 'room_deleted') {
+      if (m.code === 'no_room' || m.code === 'room_deleted' || m.code === 'kicked' || m.code === 'banned') {
         stopped = true;
-        setConn(m.code === 'room_deleted' ? 'salon supprimé' : 'salon introuvable', 'bad');
+        setConn(m.code === 'room_deleted' ? 'salon supprimé' : m.code === 'no_room' ? 'salon introuvable' : 'exclu du salon', 'bad');
         if (ws) ws.close();
-        if (m.code === 'room_deleted') setTimeout(() => { location.href = '/'; }, 1500);
+        if (m.code === 'room_deleted' || m.code === 'kicked' || m.code === 'banned') setTimeout(() => { location.href = '/'; }, 1500);
       }
       break;
   }

@@ -32,6 +32,7 @@
     <ul id="mineList" class="plain"></ul>
   </section>
 </main>
+<script src="/js/dialog.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -92,7 +93,13 @@
         del.title = 'Supprimer définitivement ce salon';
         del.addEventListener('click', async () => {
           const label = a.textContent;
-          if (!confirm(`Supprimer définitivement "${label}" et tout son contenu (jetons, fiches, journaux, images) ?\n\nCette action est irréversible.`)) return;
+          const ok = await confirmDialog({
+            title: 'Supprimer le salon',
+            message: `Supprimer définitivement « ${label} » et tout son contenu (jetons, fiches, journaux, images) ?\n\nCette action est irréversible.`,
+            confirmLabel: 'Supprimer définitivement',
+            danger: true,
+          });
+          if (!ok) return;
           del.disabled = true;
           try {
             const gmKey = localStorage.getItem('gm:' + id) || '';

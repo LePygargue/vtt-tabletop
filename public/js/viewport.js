@@ -22,13 +22,43 @@ function zoomAt(v, sx, sy, factor) {
   v.cam.y = sy - w.y * v.cam.s;
   v.dirty = true;
 }
+/** Hauteur masquée par la barre du haut (le canevas occupe tout l'écran, dessous). */
+function topInset() {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 0;
+}
+/** Centre la vue sur le point monde (wx, wy) avec une animation douce (zoom inchangé). */
+function animateCamTo(v, wx, wy, duration = 350) {
+  const top = topInset();
+  const tx = (v.canvas.clientWidth || 0) / 2 - wx * v.cam.s;
+  const ty = top + Math.max(0, (v.canvas.clientHeight || 0) - top) / 2 - wy * v.cam.s;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    v.camAnim = null;
+    v.cam.x = tx;
+    v.cam.y = ty;
+    v.dirty = true;
+    return;
+  }
+  v.camAnim = { fx: v.cam.x, fy: v.cam.y, tx, ty, start: performance.now(), duration };
+  v.dirty = true;
+}
+function stepCamAnim(v, now) {
+  const a = v.camAnim;
+  const k = Math.min(1, (now - a.start) / a.duration);
+  const e = 1 - (1 - k) ** 3; // ease-out cubique
+  v.cam.x = a.fx + (a.tx - a.fx) * e;
+  v.cam.y = a.fy + (a.ty - a.fy) * e;
+  v.dirty = true;
+  if (k >= 1) v.camAnim = null;
+}
 /** Recentre la vue sur la boîte englobante des objets visibles ; sinon sur l'origine. */
 function fitViewport() {
   const v = viewport;
   if (!v) return;
+  v.camAnim = null;
   const pad = 0.94;
+  const top = topInset();
   const cw = v.canvas.clientWidth || 1;
-  const ch = v.canvas.clientHeight || 1;
+  const ch = Math.max(1, (v.canvas.clientHeight || 1) - top);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const t of tokens.values()) {
     const r = radiusOf(v, t);
@@ -43,7 +73,7 @@ function fitViewport() {
   if (!Number.isFinite(minX)) {
     v.cam.s = 1;
     v.cam.x = cw / 2;
-    v.cam.y = ch / 2;
+    v.cam.y = top + ch / 2;
     v.dirty = true;
     return;
   }
@@ -52,7 +82,7 @@ function fitViewport() {
   const s = Math.min(cw / w, ch / h, 4) * pad;
   v.cam.s = s;
   v.cam.x = cw / 2 - ((minX + maxX) / 2) * s;
-  v.cam.y = ch / 2 - ((minY + maxY) / 2) * s;
+  v.cam.y = top + ch / 2 - ((minY + maxY) / 2) * s;
   v.dirty = true;
 }
 function resizeViewport(v) {
@@ -108,6 +138,19 @@ function imageAt(v, w) {
   }
   return null;
 }
+/* Poignée de redimensionnement (MJ) : carré dans le coin bas-droit des images non verrouillées. */
+const IMAGE_HANDLE_PX = 14;
+const IMAGE_MIN_SIZE = 20;
+function imageHandleAt(v, w) {
+  if (!isGM()) return null;
+  const half = (IMAGE_HANDLE_PX / 2 + 3) / v.cam.s;
+  const list = [...images.values()].sort((a, b) => b.order - a.order);
+  for (const img of list) {
+    if (img.locked) continue;
+    if (Math.abs(w.x - (img.x + img.width)) <= half && Math.abs(w.y - (img.y + img.height)) <= half) return img;
+  }
+  return null;
+}
 
 /* ------------------------------------------------------------------ */
 /* Rendu                                                               */
@@ -135,7 +178,7 @@ function drawViewport(v) {
 
   const rect = visibleWorldRect(v);
 
-  // images (jamais recadrées/redimensionnées, taille native)
+  // images (jamais recadrées ; redimensionnables par le MJ, proportions conservées)
   for (const img of sortedImages()) {
     const el = htmlImageFor(v, img);
     if (!el.complete || !el.naturalWidth) continue;
@@ -193,6 +236,23 @@ function drawViewport(v) {
     if (!isGM() && t.id !== youToken && isFogged(v, t.x, t.y)) continue;
     drawToken(v, t);
   }
+
+  // cadre + poignée de redimensionnement de l'image survolée / en cours de redimensionnement (MJ)
+  const handleId = v.drag && v.drag.kind === 'imageResize' ? v.drag.id : v.hoverImageId;
+  const himg = isGM() && handleId ? images.get(handleId) : null;
+  if (himg && !himg.locked) {
+    const hs = IMAGE_HANDLE_PX / v.cam.s;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 1 / v.cam.s;
+    ctx.strokeRect(himg.x, himg.y, himg.width, himg.height);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5 / v.cam.s;
+    ctx.fillRect(himg.x + himg.width - hs / 2, himg.y + himg.height - hs / 2, hs, hs);
+    ctx.strokeRect(himg.x + himg.width - hs / 2, himg.y + himg.height - hs / 2, hs, hs);
+    ctx.restore();
+  }
 }
 
 function drawToken(v, t) {
@@ -247,6 +307,24 @@ function drawToken(v, t) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(t.conditions.length), bx, by + br * 0.05);
+  }
+  if (hasNpcProfile(t)) {
+    // pastille « i » en haut à gauche : ce PNJ a une présentation à ouvrir d'un clic
+    const bx = t.x - r * 0.72;
+    const by = t.y - r * 0.72;
+    const br = Math.max(6, r * 0.3);
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fillStyle = '#e4d2a0';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, br * 0.18);
+    ctx.strokeStyle = '#3a2c18';
+    ctx.stroke();
+    ctx.fillStyle = '#3a2c18';
+    ctx.font = `italic 700 ${br * 1.35}px Georgia, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('i', bx, by + br * 0.08);
   }
   // initiales
   const initials = Array.from(t.name).slice(0, 2).join('').toUpperCase();
@@ -337,6 +415,18 @@ function snapCoordIn(v, val, size) {
   const even = size >= 1 && Math.round(size) % 2 === 0;
   return even ? Math.round(val / g) * g : (Math.floor(val / g) + 0.5) * g;
 }
+/** Déplace un jeton de (dx, dy) cases (clavier) et envoie la position finale. */
+function moveTokenBy(v, t, dx, dy) {
+  const g = v.grid.size;
+  t.x += dx * g;
+  t.y += dy * g;
+  if (v.grid.snap) {
+    t.x = snapCoordIn(v, t.x, t.size);
+    t.y = snapCoordIn(v, t.y, t.size);
+  }
+  send({ t: 'move', id: t.id, x: t.x, y: t.y, final: true });
+  v.dirty = true;
+}
 const paintTool = (v) => isGM() && v.fog.enabled && (tool === 'reveal' || tool === 'hide');
 const drawActive = () => drawTool !== 'none';
 
@@ -380,6 +470,22 @@ function randomStrokeId() {
   let s = '';
   for (let i = 0; i < 20; i++) s += Math.floor(Math.random() * 16).toString(16);
   return s;
+}
+/** Rejoue un trait effacé (undo), avec un nouvel id : redémarre puis renvoie le reste des points. */
+function resendStroke(s) {
+  const id = randomStrokeId();
+  if (s.tool === 'pen') {
+    const pts = s.points || [];
+    if (pts.length < 2) return;
+    send({ t: 'draw', op: 'start', id, tool: s.tool, color: s.color, width: s.width, layer: s.layer, x: pts[0], y: pts[1] });
+    if (pts.length > 2) send({ t: 'draw', op: 'point', id, pts: pts.slice(2) });
+  } else {
+    const a = s.a || { x: 0, y: 0 };
+    const b = s.b || a;
+    send({ t: 'draw', op: 'start', id, tool: s.tool, color: s.color, width: s.width, layer: s.layer, x: a.x, y: a.y });
+    if (b.x !== a.x || b.y !== a.y) send({ t: 'draw', op: 'point', id, x: b.x, y: b.y });
+  }
+  send({ t: 'draw', op: 'end', id });
 }
 /** Envoie les points accumulés depuis le dernier envoi (pinceau) ou la position courante (formes). */
 function flushStrokePoint(v) {
@@ -434,13 +540,14 @@ function wireViewportEvents(v) {
   v.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   v.canvas.addEventListener('pointerdown', (e) => {
+    v.camAnim = null; // l'utilisateur reprend la main sur la caméra
     v.canvas.focus({ preventScroll: true });
     v.canvas.setPointerCapture(e.pointerId);
     v.pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
 
     if (v.pointers.size === 2) {
       // deux doigts : pincer pour zoomer / déplacer
-      v.drag = null; v.pan = null; v.painting = null;
+      v.drag = null; v.pan = null; v.painting = null; v.tap = null;
       const [a, b] = [...v.pointers.values()];
       const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       v.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: v.cam.s, w: toWorld(v, mid.x, mid.y) };
@@ -460,13 +567,18 @@ function wireViewportEvents(v) {
         const s = strokeAt(v, w);
         // pas de suppression optimiste : le serveur refuse si ce n'est pas notre trait
         // (on n'a pas cette info côté client) ; l'effacement arrive via 'drawRemove'.
-        if (s) send({ t: 'draw', op: 'remove', id: s.id });
+        // On garde une copie pour proposer "Annuler" une fois la suppression confirmée.
+        if (s) {
+          pendingErases.set(s.id, s);
+          setTimeout(() => pendingErases.delete(s.id), 5000); // au cas où le serveur refuse (pas notre trait) : pas de 'drawRemove' à attendre
+          send({ t: 'draw', op: 'remove', id: s.id });
+        }
         return;
       }
       const id = randomStrokeId();
       const color = $('drawColor').value;
       const width = parseInt($('drawWidth').value, 10);
-      const layer = isGM() && $('drawGmLayer').checked ? 'gm' : 'shared';
+      const layer = isGM() && $('drawGmLayer').getAttribute('aria-pressed') === 'true' ? 'gm' : 'shared';
       v.activeStroke = drawTool === 'pen'
         ? { id, tool: drawTool, color, width, layer, points: [w.x, w.y], _sent: 2 }
         : { id, tool: drawTool, color, width, layer, a: { x: w.x, y: w.y }, b: { x: w.x, y: w.y } };
@@ -477,12 +589,22 @@ function wireViewportEvents(v) {
       return;
     }
     if (!forcePan) {
+      const handleImg = imageHandleAt(v, w);
+      if (handleImg) {
+        v.drag = { kind: 'imageResize', id: handleImg.id, ratio: handleImg.width / handleImg.height, last: 0 };
+        v.dirty = true;
+        return;
+      }
       const t = tokenAt(v, w);
       if (t) {
         selectedId = t.id;
         refreshUI();
         if (canMove(t)) v.drag = { kind: 'token', id: t.id, dx: w.x - t.x, dy: w.y - t.y, last: 0 };
-        else v.pan = { sx: e.offsetX, sy: e.offsetY, cx: v.cam.x, cy: v.cam.y };
+        else {
+          v.pan = { sx: e.offsetX, sy: e.offsetY, cx: v.cam.x, cy: v.cam.y };
+          // un clic sans glisser sur un PNJ ouvre sa présentation (voir endPointer)
+          if (hasNpcProfile(t)) v.tap = { id: t.id, x: e.offsetX, y: e.offsetY };
+        }
         v.dirty = true;
         return;
       }
@@ -537,6 +659,21 @@ function wireViewportEvents(v) {
           send({ t: 'imageMove', id: img.id, x: img.x, y: img.y, final: false });
         }
       }
+    } else if (v.drag && v.drag.kind === 'imageResize') {
+      const img = images.get(v.drag.id);
+      if (img) {
+        // coin haut-gauche fixe ; la plus grande des deux dimensions tirées l'emporte, ratio conservé
+        const ratio = v.drag.ratio;
+        const nw = Math.max(IMAGE_MIN_SIZE, IMAGE_MIN_SIZE * ratio, w.x - img.x, (w.y - img.y) * ratio);
+        img.width = nw;
+        img.height = nw / ratio;
+        v.dirty = true;
+        const now = performance.now();
+        if (now - v.drag.last > 40) {
+          v.drag.last = now;
+          send({ t: 'imageMove', id: img.id, x: img.x, y: img.y, width: img.width, height: img.height, final: false });
+        }
+      }
     } else if (v.painting) {
       paintTo(v, w);
     } else if (v.activeStroke) {
@@ -558,16 +695,39 @@ function wireViewportEvents(v) {
       v.cam.y = v.pan.cy + (e.offsetY - v.pan.sy);
       v.dirty = true;
     } else if (!v.pointers.size || e.pointerType === 'mouse') {
-      const t = tokenAt(v, w);
-      const img = !t && isGM() ? imageAt(v, w) : null;
+      const tools = paintTool(v) || drawActive();
+      const handleImg = tools ? null : imageHandleAt(v, w);
+      const t = handleImg ? null : tokenAt(v, w);
+      const img = !t && isGM() ? handleImg || imageAt(v, w) : null;
       const draggableImg = img && !img.locked;
-      v.canvas.style.cursor = paintTool(v) || drawActive() ? 'crosshair' : (t && canMove(t)) || draggableImg ? 'pointer' : 'grab';
+      const hoverId = !tools && draggableImg ? img.id : null;
+      if (hoverId !== v.hoverImageId) { v.hoverImageId = hoverId; v.dirty = true; }
+      v.canvas.style.cursor = tools ? 'crosshair' : handleImg ? 'nwse-resize' : (t && (canMove(t) || hasNpcProfile(t))) || draggableImg ? 'pointer' : 'grab';
     }
+  });
+  v.canvas.addEventListener('pointerleave', () => {
+    if (v.hoverImageId && !v.drag) { v.hoverImageId = null; v.dirty = true; }
+  });
+  // double-clic sur la poignée : retour à la taille d'origine de l'image
+  v.canvas.addEventListener('dblclick', (e) => {
+    const img = imageHandleAt(v, toWorld(v, e.offsetX, e.offsetY));
+    if (!img) return;
+    const el = htmlImageFor(v, img);
+    if (!el.naturalWidth) return;
+    img.width = el.naturalWidth;
+    img.height = el.naturalHeight;
+    v.dirty = true;
+    send({ t: 'imageMove', id: img.id, x: img.x, y: img.y, width: img.width, height: img.height, final: true });
   });
 
   function endPointer(e) {
     v.pointers.delete(e.pointerId);
     if (v.pointers.size < 2) v.pinch = null;
+    if (v.tap) {
+      const tap = v.tap;
+      v.tap = null;
+      if (e.type === 'pointerup' && !v.pointers.size && Math.hypot(e.offsetX - tap.x, e.offsetY - tap.y) < 6) openNpcProfile(tap.id);
+    }
     if (v.drag && v.drag.kind === 'token') {
       const t = tokens.get(v.drag.id);
       if (t) {
@@ -583,6 +743,13 @@ function wireViewportEvents(v) {
       const img = images.get(v.drag.id);
       if (img) {
         send({ t: 'imageMove', id: img.id, x: img.x, y: img.y, final: true });
+        v.dirty = true;
+      }
+      v.drag = null;
+    } else if (v.drag && v.drag.kind === 'imageResize') {
+      const img = images.get(v.drag.id);
+      if (img) {
+        send({ t: 'imageMove', id: img.id, x: img.x, y: img.y, width: img.width, height: img.height, final: true });
         v.dirty = true;
       }
       v.drag = null;
@@ -603,6 +770,7 @@ function wireViewportEvents(v) {
 
   v.canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
+    v.camAnim = null;
     zoomAt(v, e.offsetX, e.offsetY, Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
   }, { passive: false });
 }
@@ -624,6 +792,8 @@ function initViewport() {
     dirty: true,
     pointers: new Map(),
     drag: null, pan: null, pinch: null, painting: null,
+    camAnim: null, // animation de caméra en cours (animateCamTo)
+    hoverImageId: null, // image survolée par le MJ (affiche sa poignée de redimensionnement)
     activeStroke: null, lastStrokeFlush: 0,
   };
   viewport = v;
@@ -631,7 +801,8 @@ function initViewport() {
   resizeViewport(v);
   canvas.style.cursor = 'grab';
 
-  const loop = () => {
+  const loop = (now) => {
+    if (v.camAnim) stepCamAnim(v, now);
     if (v.dirty) drawViewport(v);
     requestAnimationFrame(loop);
   };

@@ -9,33 +9,38 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body class="room">
-<div id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas></div>
+<a class="skip-link" href="#panel">Aller au panneau</a>
+<main id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas></main>
 
 <header id="topbar">
   <strong id="roomLabel">Salon</strong>
-  <button id="btnRenameRoom" class="gm" title="Renommer le salon" aria-label="Renommer le salon">✎</button>
+  <button id="btnRenameRoom" class="gm" data-tip="Renommer le salon" aria-label="Renommer le salon">✎</button>
   <span id="roleBadge" class="badge"></span>
   <span id="conn" class="badge muted">connexion…</span>
-  <div id="dangerWrap" class="danger-wrap" title="Danger : à quel point la cellule est repérée par ses ennemis. Monte selon l'histoire ou quand les chasseurs surjouent (Overreach) ; ne redescend que si le groupe se fait discret.">
+  <span class="topbar-sep"></span>
+  <div id="dangerWrap" class="danger-wrap" tabindex="0" data-tip="Danger : à quel point la cellule est repérée par ses ennemis. Monte selon l'histoire ou quand les chasseurs surjouent (Overreach) ; ne redescend que si le groupe se fait discret.">
     <span class="danger-label">Danger</span>
     <div id="dangerMeter" class="danger-meter"></div>
   </div>
-  <div id="desperationWrap" class="danger-wrap" title="Désespoir : jauge partagée par toute la cellule, ajoute des dés à vos tests dans votre domaine (Creed Field). Monte ou descend selon les événements de l'histoire (décision du MJ).">
+  <div id="desperationWrap" class="danger-wrap" tabindex="0" data-tip="Désespoir : jauge partagée par toute la cellule, ajoute des dés à vos tests dans votre domaine (Creed Field). Monte ou descend selon les événements de l'histoire (décision du MJ).">
     <span class="danger-label">Désespoir</span>
     <div id="desperationMeter" class="danger-meter"></div>
   </div>
   <span id="initiativeBadge" class="badge ok" hidden></span>
   <span class="spacer"></span>
-  <button id="btnCopyPlayers" title="Copier le lien à donner aux joueurs">Lien joueurs</button>
-  <button id="btnCopyGM" class="gm" title="Lien MJ secret, pour reprendre la main depuis un autre appareil">Lien MJ</button>
-  <button id="btnFit" title="Recentrer la vue (touche F)">Recentrer</button>
-  <button id="btnDice" title="Afficher / masquer les dés (touche D)" aria-label="Afficher / masquer les dés">🎲</button>
-  <button id="btnPanel" aria-label="Afficher / masquer le panneau">☰</button>
-  <button id="btnHome" title="Retour à l'accueil">🏠 Accueil</button>
-  <button id="btnLogout" title="Se déconnecter">Déconnexion</button>
+  <button id="btnCopyPlayers" data-tip="Copier le lien à donner aux joueurs">Lien joueurs</button>
+  <button id="btnCopyGM" class="gm" data-tip="Lien MJ secret, pour reprendre la main depuis un autre appareil">Lien MJ</button>
+  <button id="btnFit" data-tip="Recentrer la vue (touche F)">Recentrer</button>
+  <button id="btnSheet" data-tip="Fiche de personnage (touche I)">📋 Fiche</button>
+  <button id="btnJournal" data-tip="Journal (touche J)">📔 Journal</button>
+  <button id="btnDice" data-tip="Afficher / masquer les dés (touche D)" aria-label="Afficher / masquer les dés" aria-controls="dicePanel">🎲</button>
+  <button id="btnPanel" aria-label="Afficher / masquer le panneau" aria-controls="panel">☰</button>
+  <button id="btnHelp" class="tip-right" data-tip="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis clavier">?</button>
+  <button id="btnHome" class="tip-right" data-tip="Retour à l'accueil">Accueil</button>
+  <button id="btnLogout" class="tip-right" data-tip="Se déconnecter">Déconnexion</button>
 </header>
 
-<aside id="dicePanel">
+<aside id="dicePanel" aria-label="Dés">
   <section>
     <h3>Dés</h3>
     <div class="dice-grid">
@@ -48,9 +53,9 @@
       <button class="die" data-sides="100">d100</button>
     </div>
     <div class="seg" role="radiogroup" aria-label="Mode de jet">
-      <button data-adv="normal" class="on">Normal</button>
-      <button data-adv="adv">Avantage</button>
-      <button data-adv="dis">Désavantage</button>
+      <button data-adv="normal" class="on tip-left" role="radio" aria-checked="true" data-tip="Normal : les boutons de dés ci-dessus lancent un seul dé.">Normal</button>
+      <button data-adv="adv" role="radio" aria-checked="false" data-tip="Avantage : chaque bouton de dé lance deux dés et garde le meilleur (ex. 2d20kh1). Ne s'applique pas au jet de pool.">Avantage</button>
+      <button data-adv="dis" class="tip-right" role="radio" aria-checked="false" data-tip="Désavantage : chaque bouton de dé lance deux dés et garde le moins bon (ex. 2d20kl1). Ne s'applique pas au jet de pool.">Désavantage</button>
     </div>
     <label>Modificateur <input id="rollMod" type="number" value="0" step="1"></label>
     <label class="check"><input id="rollSecret" type="checkbox"> Jet secret (MJ seul)</label>
@@ -63,40 +68,65 @@
     <h3>Jet de pool (d10)</h3>
     <form id="poolForm">
       <label>Dés normaux <input id="poolNormal" type="number" min="0" max="30" value="0" step="1"></label>
-      <label>Dés Désespoir <input id="poolHunger" type="number" min="0" max="10" value="0" step="1"></label>
-      <label>Difficulté <input id="poolDifficulty" type="number" min="1" max="20" value="3" step="1"></label>
+      <label data-tip="Pré-remplis depuis la jauge de Désespoir de la cellule, modifiables avant de lancer. Un 1 sur ces dés déclenche Overreach (test réussi, Danger augmente) ou Despair (test raté) — un 1 sur les dés normaux ne compte pas.">Dés Désespoir <input id="poolHunger" type="number" min="0" max="10" value="0" step="1"></label>
+      <label data-tip="Nombre de réussites nécessaires pour réussir le test. Chaque d10 de 6 à 10 compte comme une réussite, et chaque paire de 10 en rapporte 2 de plus (critique).">Difficulté <input id="poolDifficulty" type="number" min="1" max="20" value="3" step="1"></label>
       <button type="submit" class="big">Lancer</button>
     </form>
-    <p class="hint">Dés Désespoir pré-remplis depuis la jauge de cellule, modifiables avant de lancer. Un 1 sur ces dés déclenche Overreach (test réussi, Danger augmente) ou Despair (test raté) — un 1 sur les dés normaux ne compte pas.</p>
   </section>
   <section>
     <h3>Historique</h3>
     <ul id="diceLog" class="plain"></ul>
   </section>
-  <section>
-    <h3>Personnage</h3>
-    <div class="player-only">
-      <div class="stat-track">
-        <span class="stat-track-label">PV</span>
-        <div class="box-grid dmg-grid" id="hpBoxes"></div>
-      </div>
-      <div class="stat-track">
-        <span class="stat-track-label">Volonté</span>
-        <div class="box-grid dmg-grid" id="willpowerBoxes"></div>
-      </div>
-      <div class="stat-track">
-        <span class="stat-track-label" id="hungerBoxesMiniLabel">Faim</span>
-        <div class="box-grid" id="hungerBoxesMini"></div>
-      </div>
-    </div>
-    <div class="character-menu">
-      <button id="btnSheet">📋 Fiche de personnage</button>
-      <button id="btnJournal">📔 Journal</button>
-    </div>
-  </section>
 </aside>
 
-<aside id="panel">
+<aside id="drawBar" aria-label="Dessin">
+  <button id="drawBarToggle" class="draw-btn draw-bar-toggle tip-side" aria-expanded="true" aria-controls="drawBarBody" aria-label="Menu dessin" data-tip="Dessin : afficher / replier les outils">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>
+  </button>
+  <div id="drawBarBody">
+    <div id="drawTools" class="draw-group" role="radiogroup" aria-label="Outil de dessin">
+      <button data-draw="none" class="draw-btn tip-side on" role="radio" aria-checked="true" aria-label="Aucun outil" data-tip="Aucun outil : déplacer les jetons et la vue">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3l12 9-5.5 1.2L10 19z"/></svg>
+      </button>
+      <button data-draw="pen" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Pinceau" data-tip="Pinceau : dessin à main levée">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-1 4 3 7 2s2-6 5-7 4 2 6 1"/></svg>
+      </button>
+      <button data-draw="line" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Ligne" data-tip="Ligne droite">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5"/></svg>
+      </button>
+      <button data-draw="arrow" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Flèche" data-tip="Flèche">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L19 5M10 5h9v9"/></svg>
+      </button>
+      <button data-draw="rect" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Rectangle" data-tip="Rectangle">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
+      </button>
+      <button data-draw="ellipse" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Cercle" data-tip="Cercle / ellipse">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="12" rx="8.5" ry="6.5"/></svg>
+      </button>
+      <button data-draw="eraser" class="draw-btn tip-side" role="radio" aria-checked="false" aria-label="Gomme" data-tip="Gomme : clique sur un trait pour l'effacer (le tien, ou n'importe lequel pour le MJ)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19h11M4.5 14.5l9-9 6 6-7.5 7.5H9z"/><path d="M9 10l6 6"/></svg>
+      </button>
+    </div>
+    <div class="draw-group">
+      <label class="draw-btn draw-color tip-side" data-tip="Couleur du trait">
+        <input id="drawColor" type="color" value="#ff2d55" aria-label="Couleur du trait">
+      </label>
+      <button id="drawWidth" class="draw-btn tip-side" type="button" value="4" aria-label="Épaisseur : normale" data-tip="Épaisseur : normale (cliquer pour changer)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="draw-width-line" d="M5 12h14"/></svg>
+      </button>
+    </div>
+    <div class="draw-group gm">
+      <button id="drawGmLayer" class="draw-btn tip-side" type="button" aria-pressed="false" aria-label="Calque MJ, caché des joueurs" data-tip="Calque MJ : tes prochains traits seront cachés des joueurs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/><path class="draw-gm-slash" d="M4 20L20 4"/></svg>
+      </button>
+      <button id="drawClearAll" class="draw-btn danger tip-side" type="button" aria-label="Tout effacer" data-tip="Effacer tous les dessins">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<aside id="panel" aria-label="Panneau de jeu" tabindex="-1">
   <section id="secSel" hidden>
     <h3>Jeton sélectionné</h3>
     <label>Nom <input id="selName" maxlength="24"></label>
@@ -110,7 +140,7 @@
         <option value="4">Gigantesque (4)</option>
       </select>
     </label>
-    <label class="gm check"><input id="selHidden" type="checkbox"> Caché aux joueurs</label>
+    <label class="gm check" data-tip="Une fois caché, tu peux le rendre visible à certains joueurs seulement : coche-les dans « Visible malgré tout à », dans la fiche PNJ rapide ci-dessous."><input id="selHidden" type="checkbox"> Caché aux joueurs</label>
     <div id="selConditions">
       <span class="stat-track-label">Conditions</span>
       <ul id="selConditionList" class="plain"></ul>
@@ -120,13 +150,40 @@
       </div>
     </div>
     <button id="selDelete" class="gm danger">Supprimer ce PNJ</button>
+    <button id="selKick" class="gm danger" data-tip="Retire son jeton et l'empêche de rejoindre à nouveau ce salon (ses fiche/journal sont conservés si tu le réintègres)." hidden>Exclure ce joueur</button>
+    <div id="npcProfileEdit" class="gm" hidden>
+      <h4>Présentation aux joueurs</h4>
+      <p class="hint">Les joueurs qui voient ce PNJ l'ouvrent en cliquant sur son jeton. Les notes de la fiche rapide restent secrètes.</p>
+      <div class="npc-portrait-edit">
+        <img id="npcPortraitPreview" alt="Portrait actuel" hidden>
+        <div class="npc-portrait-actions">
+          <button id="npcPortraitPick" type="button">Choisir une image…</button>
+          <button id="npcPortraitRemove" type="button" class="danger" hidden>Retirer l'image</button>
+        </div>
+        <input id="npcPortraitFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      </div>
+      <label>Description
+        <textarea id="npcDescription" rows="4" maxlength="2000" placeholder="Apparence, attitude, ce que les joueurs savent de lui…"></textarea>
+      </label>
+      <button id="npcProfilePreview" type="button">Aperçu côté joueur</button>
+    </div>
     <div id="npcQuick" class="gm" hidden>
       <h4>Fiche PNJ rapide</h4>
+      <div id="npcVisibility" data-tip="Ces joueurs voient ce PNJ même s'il est caché aux autres." hidden>
+        <span class="stat-track-label">Visible malgré tout à</span>
+        <ul id="npcVisibilityList" class="plain"></ul>
+      </div>
       <div class="sheet-row3">
         <label>PV <input id="npcHp" type="number" min="0" max="999" step="1"></label>
         <label>PV max <input id="npcHpMax" type="number" min="1" max="999" step="1"></label>
       </div>
       <div class="box-grid" id="npcHpBoxes"></div>
+      <div class="sheet-row3">
+        <label>Volonté <input id="npcWillpower" type="number" min="0" max="20" step="1"></label>
+        <label>Volonté max <input id="npcWillpowerMax" type="number" min="1" max="20" step="1"></label>
+        <label data-tip="À toi de décider ce qu'elle représente : difficulté pour toucher ce PNJ, défense passive…">Défense <input id="npcDefense" type="number" min="0" max="20" step="1"></label>
+      </div>
+      <div class="box-grid" id="npcWillpowerBoxes"></div>
       <label>Traits (attaques, résistances…)
         <textarea id="npcTraits" rows="3" maxlength="500"></textarea>
       </label>
@@ -146,14 +203,38 @@
     </div>
   </section>
 
+  <section id="secCharacter" class="player-only">
+    <h3>Personnage</h3>
+    <div>
+      <div class="stat-track">
+        <span class="stat-track-label">PV</span>
+        <div class="box-grid dmg-grid tip-left" id="hpBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
+      </div>
+      <div class="stat-track">
+        <span class="stat-track-label">Volonté</span>
+        <div class="box-grid dmg-grid tip-left" id="willpowerBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
+      </div>
+      <div class="stat-track">
+        <span class="stat-track-label" id="hungerBoxesMiniLabel">Faim</span>
+        <div class="box-grid" id="hungerBoxesMini"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gm" id="secBanned" hidden>
+    <h3>Joueurs exclus</h3>
+    <ul id="bannedList" class="plain"></ul>
+  </section>
+
   <section class="gm" id="secInitiative">
     <h3>Initiative</h3>
     <p class="hint">Round <span id="initRound">1</span></p>
     <ol id="initiativeList" class="plain"></ol>
     <div class="row">
       <select id="initTokenSelect"></select>
-      <input id="initScoreInput" type="number" value="0" step="1" style="width:60px">
-      <button id="initAdd" type="button">+</button>
+      <input id="initScoreInput" type="number" value="0" step="1" style="width:60px" data-tip="Score exact (bouton +) ou modificateur ajouté au d10 (bouton 🎲)">
+      <button id="initAdd" type="button" class="tip-right" data-tip="Ajoute avec le score exact saisi">+</button>
+      <button id="initAddRoll" type="button" class="tip-right" data-tip="Lance 1d10 + le modificateur saisi">🎲</button>
     </div>
     <div class="row">
       <button id="initNext" type="button">Tour suivant ▶</button>
@@ -168,7 +249,6 @@
       <button id="imageUpload">Ajouter une image…</button>
     </div>
     <input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-    <p class="hint">Glisse une image sur le plateau pour la déplacer · 👁 afficher/cacher aux joueurs · 🔒 verrouiller/déverrouiller le déplacement · 🗑 supprimer.</p>
   </section>
 
   <section class="gm">
@@ -183,9 +263,9 @@
     <label class="check"><input id="fogEnabled" type="checkbox"> Activer le brouillard</label>
     <div id="fogTools">
       <div class="seg" role="radiogroup" aria-label="Outil">
-        <button data-tool="move" class="on">Déplacer</button>
-        <button data-tool="reveal">Révéler</button>
-        <button data-tool="hide">Cacher</button>
+        <button data-tool="move" class="on" role="radio" aria-checked="true">Déplacer</button>
+        <button data-tool="reveal" role="radio" aria-checked="false">Révéler</button>
+        <button data-tool="hide" role="radio" aria-checked="false">Cacher</button>
       </div>
       <label>Pinceau
         <select id="brush">
@@ -201,35 +281,6 @@
       </div>
     </div>
     <p class="hint">Astuce : avec un pinceau actif, clic droit ou molette pour déplacer/zoomer.</p>
-  </section>
-
-  <section>
-    <h3>Dessin</h3>
-    <div id="drawTools" role="radiogroup" aria-label="Outil de dessin">
-      <div class="seg">
-        <button data-draw="none" class="on">Aucun</button>
-        <button data-draw="pen">Pinceau</button>
-        <button data-draw="line">Ligne</button>
-        <button data-draw="arrow">Flèche</button>
-      </div>
-      <div class="seg">
-        <button data-draw="rect">Rectangle</button>
-        <button data-draw="ellipse">Cercle</button>
-        <button data-draw="eraser">Gomme</button>
-      </div>
-    </div>
-    <label>Couleur <input id="drawColor" type="color" value="#ff2d55"></label>
-    <label>Épaisseur
-      <select id="drawWidth">
-        <option value="2">Fin</option>
-        <option value="4" selected>Normal</option>
-        <option value="8">Épais</option>
-        <option value="16">Très épais</option>
-      </select>
-    </label>
-    <label class="check gm"><input id="drawGmLayer" type="checkbox"> Calque MJ (caché des joueurs)</label>
-    <button id="drawClearAll" class="gm">Tout effacer</button>
-    <p class="hint">Gomme : clique sur un trait pour l'effacer (le tien, ou n'importe lequel pour le MJ).</p>
   </section>
 
   <section>
@@ -281,11 +332,11 @@
         </div>
         <div class="stat-track">
           <span class="stat-track-label">Santé</span>
-          <div class="box-grid dmg-grid" id="sheetHealthBoxes"></div>
+          <div class="box-grid dmg-grid tip-left" id="sheetHealthBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
         </div>
         <div class="stat-track">
           <span class="stat-track-label">Volonté</span>
-          <div class="box-grid dmg-grid" id="sheetWillpowerBoxes"></div>
+          <div class="box-grid dmg-grid tip-left" id="sheetWillpowerBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
         </div>
         <p class="hint">Clique une case pour la faire passer de vide à superficiel puis aggravé.</p>
       </section>
@@ -358,18 +409,88 @@
   </div>
 </div>
 
-<div id="toast" role="status" aria-live="polite"></div>
-<div id="diceFlash" aria-live="polite"></div>
-<div id="rollBanner" aria-live="polite"></div>
+<div id="npcProfilePanel" class="overlay" hidden>
+  <div class="overlay-card npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npcProfileName">
+    <button id="btnNpcProfileClose" class="npc-profile-close" aria-label="Fermer la présentation">✕</button>
+    <div id="npcProfilePortrait" class="npc-profile-portrait"><img id="npcProfileImg" alt=""></div>
+    <div class="npc-profile-body">
+      <h2 id="npcProfileName"></h2>
+      <p id="npcProfileDesc"></p>
+    </div>
+  </div>
+</div>
 
+<div id="renamePanel" class="overlay" hidden>
+  <div class="overlay-card rename-card">
+    <header class="sheet-head">
+      <h2>Renommer le salon</h2>
+      <span class="spacer"></span>
+      <button id="btnRenameClose" aria-label="Fermer">✕</button>
+    </header>
+    <form id="renameForm">
+      <label>Nom du salon
+        <input id="renameInput" maxlength="60" placeholder="Laisser vide pour revenir au code">
+      </label>
+      <div class="row rename-actions">
+        <button type="button" id="btnRenameCancel">Annuler</button>
+        <button type="submit" class="primary">Renommer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="diceFlash"></div>
+<div id="gaugeFlash" aria-hidden="true"></div>
+<div id="gaugeAlerts" aria-hidden="true"></div>
+<div id="rollBanner"></div>
+<div id="srLive" class="sr-only" aria-live="polite"></div>
+
+<dialog id="helpDialog" class="confirm-dialog help-dialog" aria-labelledby="helpTitle">
+  <div class="confirm-card">
+    <h2 id="helpTitle">Aide et raccourcis</h2>
+    <h3>Partout</h3>
+    <dl class="shortcuts">
+      <dt><kbd>?</kbd></dt><dd>Ouvrir cette aide</dd>
+      <dt><kbd>F</kbd></dt><dd>Recentrer la vue</dd>
+      <dt><kbd>D</kbd></dt><dd>Afficher / masquer les dés</dd>
+      <dt><kbd>I</kbd></dt><dd>Fiche de personnage</dd>
+      <dt><kbd>J</kbd></dt><dd>Journal</dd>
+      <dt><kbd>Échap</kbd></dt><dd>Désélectionner, fermer un panneau ou une infobulle</dd>
+      <dt class="gm"><kbd>Suppr</kbd></dt><dd class="gm">Supprimer le jeton sélectionné</dd>
+    </dl>
+    <h3>Sur le plateau (après l'avoir atteint avec <kbd>Tab</kbd>)</h3>
+    <dl class="shortcuts">
+      <dt><kbd>Tab</kbd> / <kbd>Maj</kbd>+<kbd>Tab</kbd></dt><dd>Jeton suivant / précédent</dd>
+      <dt><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></dt><dd>Déplacer le jeton sélectionné d'une case (sinon, faire défiler la vue)</dd>
+      <dt><kbd>Maj</kbd>+flèches</dt><dd>Déplacer de 5 cases</dd>
+      <dt><kbd>Entrée</kbd></dt><dd>Ouvrir la présentation du PNJ sélectionné (pastille « i »)</dd>
+      <dt><kbd>+</kbd> / <kbd>−</kbd></dt><dd>Zoomer / dézoomer</dd>
+      <dt><kbd>Espace</kbd>+glisser</dt><dd>Déplacer la vue à la souris</dd>
+    </dl>
+    <h3>Affichage</h3>
+    <div class="seg" role="radiogroup" aria-label="Taille du texte">
+      <button type="button" data-ui-size="1" class="on" role="radio" aria-checked="true">Normale</button>
+      <button type="button" data-ui-size="1.15" role="radio" aria-checked="false">Grande</button>
+      <button type="button" data-ui-size="1.3" role="radio" aria-checked="false">Très grande</button>
+    </div>
+    <div class="row confirm-actions">
+      <button type="button" id="btnHelpClose" class="primary">Fermer</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="/js/dialog.js"></script>
 <script src="/js/state.js"></script>
 <script src="/js/network.js"></script>
 <script src="/js/viewport.js"></script>
 <script src="/js/keyboard.js"></script>
 <script src="/js/ui.js"></script>
+<script src="/js/help.js"></script>
 <script src="/js/danger.js"></script>
 <script src="/js/initiative.js"></script>
 <script src="/js/npc.js"></script>
+<script src="/js/npc-profile.js"></script>
 <script src="/js/dice-ui.js"></script>
 <script src="/js/links.js"></script>
 <script src="/js/sheet.js"></script>

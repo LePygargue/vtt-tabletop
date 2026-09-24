@@ -41,8 +41,16 @@ function renderJournal() {
       edit.addEventListener('click', () => startEditJournalEntry(e, text, actions));
       const del = document.createElement('button');
       del.textContent = 'Supprimer';
-      del.addEventListener('click', () => {
-        if (confirm('Supprimer cette entrée du journal ?')) send({ t: 'journal', op: 'remove', id: e.id });
+      del.addEventListener('click', async () => {
+        const ok = await confirmDialog({
+          title: "Supprimer l'entrée",
+          message: 'Supprimer cette entrée du journal ?',
+          confirmLabel: 'Supprimer',
+          danger: true,
+        });
+        if (!ok) return;
+        send({ t: 'journal', op: 'remove', id: e.id });
+        toast('Entrée du journal supprimée.', { label: 'Annuler', onClick: () => send({ t: 'journal', op: 'add', text: e.text }) });
       });
       actions.append(edit, del);
       card.appendChild(actions);
@@ -83,21 +91,6 @@ $('journalAddForm').addEventListener('submit', (e) => {
 });
 
 /** MJ : liste des jetons de joueurs (déjà connus côté client), jamais le playerId. */
-function refreshJournalPlayerOptions() {
-  const sel = $('journalPlayerSelect');
-  const prev = sel.value;
-  sel.textContent = '';
-  const list = [...tokens.values()].filter((t) => t.pc).sort((a, b) => a.name.localeCompare(b.name));
-  for (const t of list) {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.name;
-    sel.appendChild(opt);
-  }
-  if (list.some((t) => t.id === prev)) sel.value = prev;
-  else if (list.length) sel.value = list[0].id;
-  return sel.value || null;
-}
 function openJournalForToken(tokenId) {
   if (!tokenId) return;
   journalTokenId = tokenId;
@@ -110,7 +103,7 @@ $('btnJournal').addEventListener('click', () => {
   panel.hidden = !panel.hidden;
   if (panel.hidden) return;
   if (isGM()) {
-    const tokenId = refreshJournalPlayerOptions();
+    const tokenId = refreshPlayerOptions('journalPlayerSelect');
     if (tokenId && tokenId !== journalTokenId) openJournalForToken(tokenId);
     else renderJournal();
   } else {
@@ -118,3 +111,5 @@ $('btnJournal').addEventListener('click', () => {
   }
 });
 $('btnJournalClose').addEventListener('click', () => { $('journalPanel').hidden = true; });
+closeOnEscape(() => !$('journalPanel').hidden, () => { $('journalPanel').hidden = true; });
+closeOnClickOutside($('journalPanel').querySelector('.overlay-card'), () => !$('journalPanel').hidden, () => { $('journalPanel').hidden = true; });

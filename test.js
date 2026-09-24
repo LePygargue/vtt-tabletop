@@ -231,6 +231,104 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   gm.send({ t: 'tokenUpdate', id: sel.id, patch: { hidden: true } });
   await p1.waitFor((m) => m.t === 'tokenRemove' && m.id === sel.id);
   check('PNJ re-caché disparaît chez les joueurs', () => {});
+
+  // --- dérogation de visibilité : un PNJ caché peut être montré à certains joueurs seulement ---
+  gm.clear(); p1.clear(); p2.clear();
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { visibleToTokens: [s1.youToken] } });
+  const visUp = await p1.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === sel.id);
+  check('PNJ caché avec dérogation : le joueur autorisé le reçoit', () => {
+    assert.strictEqual(visUp.token.name, 'Gobelin');
+  });
+  await sleep(100);
+  check('PNJ caché avec dérogation : les autres joueurs ne le reçoivent pas', () => {
+    assert.strictEqual(p2.count((m) => m.t === 'tokenUpsert' && m.token.id === sel.id), 0);
+  });
+  gm.clear(); p1.clear();
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { visibleToTokens: [] } });
+  const visRevoke = await p1.waitFor((m) => m.t === 'tokenRemove' && m.id === sel.id);
+  check('dérogation retirée : le joueur perd à nouveau le PNJ', () => assert.strictEqual(visRevoke.id, sel.id));
+
+  // --- fiche PNJ rapide (MJ uniquement, jamais envoyée aux joueurs) ---
+  gm.clear();
+  gm.send({ t: 'npc', op: 'get', tokenId: sel.id });
+  const npcInit = await gm.waitFor((m) => m.t === 'npcData' && m.tokenId === sel.id);
+  check('fiche PNJ par défaut : PV/Volonté/Défense à zéro, textes vides', () => {
+    assert.strictEqual(npcInit.sheet.hp, 0);
+    assert.strictEqual(npcInit.sheet.hpMax, 10);
+    assert.strictEqual(npcInit.sheet.willpower, 0);
+    assert.strictEqual(npcInit.sheet.willpowerMax, 3);
+    assert.strictEqual(npcInit.sheet.defense, 0);
+  });
+  gm.send({
+    t: 'npc', op: 'update', tokenId: sel.id,
+    patch: { hp: 4, hpMax: 12, willpower: 2, willpowerMax: 4, defense: 13, traits: 'Griffes +2', notes: 'Fuit sous 25% de PV' },
+  });
+  const npcUp = await gm.waitFor((m) => m.t === 'npcData' && m.tokenId === sel.id && m.sheet.hp === 4);
+  check('mise à jour de la fiche PNJ (Volonté et Défense/Difficulté incluses)', () => {
+    assert.strictEqual(npcUp.sheet.hpMax, 12);
+    assert.strictEqual(npcUp.sheet.willpower, 2);
+    assert.strictEqual(npcUp.sheet.willpowerMax, 4);
+    assert.strictEqual(npcUp.sheet.defense, 13);
+    assert.strictEqual(npcUp.sheet.traits, 'Griffes +2');
+  });
+  p1.clear();
+  p1.send({ t: 'npc', op: 'get', tokenId: sel.id });
+  await sleep(100);
+  check('un joueur ne peut pas consulter la fiche PNJ (réservée au MJ)', () => {
+    assert.strictEqual(p1.count((m) => m.t === 'npcData'), 0);
+  });
+
+  // --- présentation d'un PNJ (portrait + description), publique pour qui voit le jeton ---
+  gm.clear(); p1.clear(); p2.clear();
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { description: '  Un gobelin nerveux.\nIl sent la vase.  ' } });
+  await sleep(150);
+  check('présentation d\'un PNJ caché : jamais envoyée aux joueurs', () => {
+    assert.strictEqual(p1.count((m) => m.t === 'tokenUpsert' && m.token.id === sel.id), 0);
+  });
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { hidden: false } });
+  const profUp = await p1.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === sel.id);
+  check('PNJ révélé : description reçue par les joueurs, nettoyée', () => {
+    assert.strictEqual(profUp.token.description, 'Un gobelin nerveux.\nIl sent la vase.');
+    assert.strictEqual(profUp.token.portrait, null);
+  });
+  p1.clear();
+  p1.send({ t: 'tokenUpdate', id: sel.id, patch: { description: 'Piraté' } });
+  await sleep(100);
+  check('un joueur ne peut pas modifier la présentation d\'un PNJ', () => {
+    assert.strictEqual(p1.count((m) => m.t === 'tokenUpsert' && m.token.id === sel.id), 0);
+  });
+  const portraitUrl = `/api/rooms/${created.id}/tokens/${sel.id}/portrait`;
+  r = await p1.authedFetch(base, portraitUrl, { method: 'POST', body: PNG });
+  check('portrait : refusé sans la clé MJ', () => assert.strictEqual(r.status, 403));
+  r = await gm.authedFetch(base, portraitUrl, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: Buffer.from('<svg onload=alert(1)>') });
+  check('portrait : format non image refusé', () => assert.strictEqual(r.status, 415));
+  r = await gm.authedFetch(base, `/api/rooms/${created.id}/tokens/${s1.youToken}/portrait`, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
+  check('portrait : impossible sur un jeton de joueur', () => assert.strictEqual(r.status, 404));
+  r = await gm.authedFetch(base, portraitUrl, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
+  const portUp = await p1.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === sel.id && m.token.portrait);
+  const portraitFile = path.join(process.env.DATA_DIR, 'uploads', path.basename(portUp.token.portrait));
+  const portraitGet = await p1.authedFetch(base, portUp.token.portrait);
+  check('portrait : envoyé par le MJ, reçu et servi aux joueurs du salon', () => {
+    assert.strictEqual(r.status, 200);
+    assert(portUp.token.portrait.startsWith('/uploads/'));
+    assert.strictEqual(portraitGet.status, 200);
+    assert(fs.existsSync(portraitFile));
+  });
+  p1.clear();
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { portrait: null } });
+  const portRm = await p1.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === sel.id);
+  await sleep(100);
+  check('portrait retiré : diffusé et fichier supprimé', () => {
+    assert.strictEqual(portRm.token.portrait, null);
+    assert(!fs.existsSync(portraitFile));
+  });
+  check('les jetons de joueurs ne portent pas de présentation', () => {
+    assert.strictEqual(portUp.token.pc, false);
+    assert.strictEqual('description' in (s1.tokens.find((t) => t.id === s1.youToken) || {}), false);
+  });
+  gm.send({ t: 'tokenUpdate', id: sel.id, patch: { hidden: true } });
+  await p1.waitFor((m) => m.t === 'tokenRemove' && m.id === sel.id);
+
   p1.send({ t: 'tokenRemove', id: s1.youToken });
   gm.send({ t: 'tokenRemove', id: s1.youToken });
   await sleep(150);
@@ -296,6 +394,35 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert(!sc.strokes.some((s) => s.id === strokeB));
   });
   carol.ws.close();
+
+  // --- exclusion / réintégration d'un joueur (sans supprimer tout le salon) ---
+  gm.clear();
+  gm.send({ t: 'kickPlayer', tokenId: sc.youToken });
+  await gm.waitFor((m) => m.t === 'tokenRemove' && m.id === sc.youToken);
+  const banned = await gm.waitFor((m) => m.t === 'bannedList');
+  const carolBan = banned.bannedPlayers.find((b) => b.name === 'Carol');
+  check('exclusion : jeton retiré et le MJ voit Carol dans la liste des exclus', () => assert(carolBan));
+
+  const rejoin = new Client('Carol (rejoin)');
+  await rejoin.login(base, 'carol', 'carol-password-1');
+  await rejoin.connectWs(base, wsBase);
+  rejoin.send({ t: 'join', room: created.id });
+  const banErr = await rejoin.waitFor((m) => m.t === 'error');
+  check('un joueur exclu ne peut pas rejoindre à nouveau', () => assert.strictEqual(banErr.code, 'banned'));
+  rejoin.ws.close();
+
+  gm.clear();
+  gm.send({ t: 'unbanPlayer', playerId: carolBan.playerId });
+  await gm.waitFor((m) => m.t === 'bannedList' && m.bannedPlayers.length === 0);
+  check('réintégration : la liste des exclus se vide', () => {});
+
+  const back = new Client('Carol (retour)');
+  await back.login(base, 'carol', 'carol-password-1');
+  await back.connectWs(base, wsBase);
+  back.send({ t: 'join', room: created.id });
+  const backState = await back.waitFor((m) => m.t === 'state');
+  check('réintégré, le joueur peut de nouveau rejoindre le salon', () => assert.strictEqual(backState.role, 'player'));
+  back.ws.close();
 
   p1.clear(); p2.clear();
   p2.send({ t: 'draw', op: 'remove', id: strokeA });
@@ -517,6 +644,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.strictEqual(imgFile.headers.get('x-content-type-options'), 'nosniff');
   });
 
+  // --- accès aux uploads limité aux membres du salon (joueurs ou MJ ayant rejoint via la gmKey) ---
+  const created2 = await (await gm.authedFetch(base, '/api/rooms', { method: 'POST' })).json();
+  const gm2 = new Client('MJ (salon 2)');
+  await gm2.login(base, 'gm', 'mj-password-1');
+  await gm2.connectWs(base, wsBase);
+  gm2.send({ t: 'join', room: created2.id, gmKey: created2.gmKey });
+  await gm2.waitFor((m) => m.t === 'state');
+  r = await gm2.authedFetch(base, `/api/rooms/${created2.id}/image?w=100&h=100`, { method: 'POST', headers: { 'X-GM-Key': created2.gmKey }, body: PNG });
+  assert.strictEqual(r.status, 200);
+  const up2Room = await gm2.waitFor((m) => m.t === 'imageUpsert');
+  const otherRoomImgAsP1 = await p1.authedFetch(base, up2Room.image.url);
+  check("l'image d'un autre salon est inaccessible à un joueur qui n'en fait pas partie", () => {
+    assert.strictEqual(otherRoomImgAsP1.status, 404);
+  });
+  const otherRoomImgAsGm2 = await gm2.authedFetch(base, up2Room.image.url);
+  check('le MJ ayant rejoint son salon via la gmKey peut accéder à ses propres images', () => {
+    assert.strictEqual(otherRoomImgAsGm2.status, 200);
+  });
+  gm2.ws.close();
+
   // deuxième image, chevauchante : vérifie le passage au premier plan au déplacement
   gm.clear(); p1.clear();
   r = await gm.authedFetch(base, `/api/rooms/${created.id}/image?w=200&h=200&name=${encodeURIComponent('Jeton')}&cx=1000&cy=500`, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
@@ -584,6 +731,42 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.strictEqual(movedAfterUnlock.x, 111);
     assert.strictEqual(movedAfterUnlock.y, 222);
   });
+
+  // --- redimensionnement (poignée d'angle côté MJ) ---
+  gm.clear(); p1.clear();
+  gm.send({ t: 'imageMove', id: image1Id, x: 111, y: 222, width: 300, height: 150, final: true });
+  const resized = await p1.waitFor((m) => m.t === 'imageMove' && m.id === image1Id);
+  check('redimensionnement d\'une image diffusé aux joueurs', () => {
+    assert.strictEqual(resized.width, 300);
+    assert.strictEqual(resized.height, 150);
+  });
+  gm.clear(); p1.clear();
+  gm.send({ t: 'imageMove', id: image1Id, x: 111, y: 222, width: 1, height: -5, final: true });
+  const clamped = await p1.waitFor((m) => m.t === 'imageMove' && m.id === image1Id);
+  check('redimensionnement : taille bornée (20 px minimum)', () => {
+    assert.strictEqual(clamped.width, 20);
+    assert.strictEqual(clamped.height, 20);
+  });
+  gm.clear(); p1.clear();
+  p1.send({ t: 'imageMove', id: image1Id, x: 111, y: 222, width: 900, height: 900, final: true });
+  await sleep(150);
+  check('un joueur ne peut pas redimensionner une image', () => {
+    assert.strictEqual(gm.count((m) => m.t === 'imageMove'), 0);
+  });
+  gm.send({ t: 'imageUpdate', id: image1Id, patch: { locked: true } });
+  const lockedResized = await p1.waitFor((m) => m.t === 'imageUpsert' && m.image.id === image1Id && m.image.locked === true);
+  check('verrouiller une image redimensionnée conserve sa taille', () => {
+    assert.strictEqual(lockedResized.image.width, 20);
+    assert.strictEqual(lockedResized.image.height, 20);
+  });
+  gm.clear(); p1.clear();
+  gm.send({ t: 'imageMove', id: image1Id, x: 111, y: 222, width: 500, height: 250, final: true });
+  await sleep(150);
+  check('une image verrouillée ne peut pas être redimensionnée', () => {
+    assert.strictEqual(p1.count((m) => m.t === 'imageMove'), 0);
+  });
+  gm.send({ t: 'imageUpdate', id: image1Id, patch: { locked: false } });
+  await p1.waitFor((m) => m.t === 'imageUpsert' && m.image.id === image1Id && m.image.locked === false);
 
   gm.clear(); p1.clear();
   gm.send({ t: 'imageUpdate', id: image1Id, patch: { hidden: true } });
@@ -670,6 +853,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.strictEqual(d10Roll.roll.parts[0].sides, 10);
     assert.strictEqual(d10Roll.roll.total, 32);
   });
+
+  // --- initiative lancée aux dés (1d10 + modificateur, calculé côté serveur) ---
+  gm.clear();
+  crypto.randomInt = () => 6;
+  gm.send({ t: 'initiative', op: 'addRoll', tokenId: s1.youToken, mod: 3 });
+  const initRoll = await gm.waitFor((m) => m.t === 'rollResult');
+  const initState = await gm.waitFor((m) => m.t === 'initiative');
+  crypto.randomInt = origRandomInt;
+  check('initiative : jet 1d10+modificateur calculé côté serveur et journalisé', () => {
+    assert.strictEqual(initRoll.roll.expr, '1d10+3');
+    assert.strictEqual(initRoll.roll.total, 9);
+    const entry = initState.initiative.entries.find((e) => e.tokenId === s1.youToken);
+    assert(entry && entry.score === 9);
+  });
+  gm.clear();
+  gm.send({ t: 'initiative', op: 'addRoll', tokenId: s1.youToken, mod: 0 });
+  await sleep(150);
+  check("initiative : un jeton déjà dans l'ordre ne peut pas être ajouté deux fois", () => {
+    assert.strictEqual(gm.count((m) => m.t === 'rollResult'), 0);
+  });
+  gm.send({ t: 'initiative', op: 'clear' });
+  await gm.waitFor((m) => m.t === 'initiative' && !m.initiative.active);
 
   // --- reconnexion du joueur (nouvel appareil : nouvelle session, même compte) : même jeton, historique retrouvé ---
   p1.ws.close();

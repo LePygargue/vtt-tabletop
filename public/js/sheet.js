@@ -113,6 +113,7 @@ function renderStatBoxes(id, value) {
 
 /** Cycle d'une case de dégâts au clic : vide → superficiel → aggravé → vide. */
 const DAMAGE_CYCLE = { '': 's', s: 'a', a: '' };
+const DAMAGE_LABELS = { '': 'vide', s: 'superficiel', a: 'aggravé' };
 /**
  * Tracker Santé/Volonté à cases Superficiel/Aggravé (cliquables si `editable`) :
  * `max` cases, chacune dans l'état `track[i]` ('' vide, 's' superficiel, 'a' aggravé).
@@ -128,7 +129,8 @@ function renderDamageTrack(id, key, max, track, editable) {
     box.className = 'box dmg-' + (state || 'empty');
     if (editable) {
       box.type = 'button';
-      box.title = 'Cliquer : vide → superficiel → aggravé → vide';
+      // l'explication est dans le tooltip (data-tip) de la rangée ; ici, juste l'état de la case
+      box.setAttribute('aria-label', `Case ${i + 1} : ${DAMAGE_LABELS[state]}`);
       box.addEventListener('click', () => {
         const next = track.slice(0, n);
         while (next.length < n) next.push('');
@@ -145,8 +147,8 @@ function renderSheetForm() {
   if (!s) return;
   renderDamageTrack('sheetHealthBoxes', 'health', s.healthMax, s.health, true);
   renderDamageTrack('sheetWillpowerBoxes', 'willpower', s.willpowerMax, s.willpower, true);
-  renderDamageTrack('hpBoxes', 'health', s.healthMax, s.health, false);
-  renderDamageTrack('willpowerBoxes', 'willpower', s.willpowerMax, s.willpower, false);
+  renderDamageTrack('hpBoxes', 'health', s.healthMax, s.health, true);
+  renderDamageTrack('willpowerBoxes', 'willpower', s.willpowerMax, s.willpower, true);
   renderStatBoxes('hungerBoxes', s.hunger);
   renderStatBoxes('moralityBoxes', s.morality);
   for (const [, items] of ATTR_GROUPS) {
@@ -233,21 +235,6 @@ $('sheetPowersLabel').addEventListener('input', () => queueSheetPatch({ powersLa
 $('sheetPowers').addEventListener('input', () => queueSheetPatch({ powers: $('sheetPowers').value }));
 
 /** MJ : liste des jetons de joueurs (déjà connus côté client), jamais le playerId. */
-function refreshSheetPlayerOptions() {
-  const sel = $('sheetPlayerSelect');
-  const prev = sel.value;
-  sel.textContent = '';
-  const list = [...tokens.values()].filter((t) => t.pc).sort((a, b) => a.name.localeCompare(b.name));
-  for (const t of list) {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.name;
-    sel.appendChild(opt);
-  }
-  if (list.some((t) => t.id === prev)) sel.value = prev;
-  else if (list.length) sel.value = list[0].id;
-  return sel.value || null;
-}
 function openSheetForToken(tokenId) {
   if (!tokenId) return;
   currentTokenId = tokenId;
@@ -260,8 +247,10 @@ $('btnSheet').addEventListener('click', () => {
   panel.hidden = !panel.hidden;
   if (panel.hidden) return;
   if (isGM()) {
-    const tokenId = refreshSheetPlayerOptions();
+    const tokenId = refreshPlayerOptions('sheetPlayerSelect');
     if (tokenId && tokenId !== currentTokenId) openSheetForToken(tokenId);
   }
 });
 $('btnSheetClose').addEventListener('click', () => { $('sheetPanel').hidden = true; });
+closeOnEscape(() => !$('sheetPanel').hidden, () => { $('sheetPanel').hidden = true; });
+closeOnClickOutside($('sheetPanel').querySelector('.overlay-card'), () => !$('sheetPanel').hidden, () => { $('sheetPanel').hidden = true; });

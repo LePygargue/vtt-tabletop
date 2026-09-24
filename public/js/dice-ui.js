@@ -8,16 +8,227 @@ function addRoll(roll) {
   rolls.push(roll);
   if (rolls.length > 50) rolls.shift();
   renderDiceLog();
+  let revealMs = 650;
   if (roll.role === 'gm') flashRoll(roll);
-  else showRollBanner(roll);
+  else revealMs = showRollBanner(roll);
+  if (roll.outcome === 'overreach') overreachRevealAt = performance.now() + revealMs;
+  // annoncé une fois l'animation de la bannière finie, pas face par face
+  const text = `${roll.by}${roll.private ? ' (secret)' : ''} : ${roll.total}${successSuffix(roll).replace(/\s*·\s*/g, ', ')}`;
+  setTimeout(() => announce(text), revealMs + 50);
 }
-/** Bannière du bas, plus visible, pour les jets des joueurs (pas ceux du MJ). */
+
+/* ---------- Animation des dés ---------- */
+const RDIE_MAX_SHOWN = 12;   // au-delà, un « +N » résume le reste du jet
+const RDIE_TUMBLE_MS = 1100; // durée de la roulade d'un dé
+const RDIE_STAGGER_MS = 70;  // décalage entre deux dés
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** Sommets d'un polygone régulier (repère 0-100), premier sommet vers le haut. */
+function regularPoints(n, r, cx = 50, cy = 50, start = -90) {
+  const pts = [];
+  for (let k = 0; k < n; k++) {
+    const a = ((start + (360 / n) * k) * Math.PI) / 180;
+    pts.push([+(cx + r * Math.cos(a)).toFixed(1), +(cy + r * Math.sin(a)).toFixed(1)]);
+  }
+  return pts;
+}
+const ptsStr = (pts) => pts.map((p) => p.join(',')).join(' ');
+
+/** Dodécaèdre vu de face : pentagone central entouré de cinq faces pentagonales. */
+function d12Shape() {
+  const outer = regularPoints(10, 47, 50, 51);
+  const inner = regularPoints(5, 27, 50, 51);
+  const faces = [];
+  for (let k = 0; k < 5; k++) {
+    const pts = [inner[k], outer[2 * k], outer[2 * k + 1], outer[(2 * k + 2) % 10], inner[(k + 1) % 5]];
+    faces.push([k === 0 || k === 4 ? 'side' : 'low', ptsStr(pts)]);
+  }
+  faces.push(['front', ptsStr(inner)]);
+  return { faces, edge: ptsStr(outer), shine: '14,40 26,14 50,4', num: [50, 53, 40] };
+}
+/** Icosaèdre vu de face : triangle central dans un hexagone de faces triangulaires. */
+function d20Shape() {
+  const [t, ur, lr, b, ll, ul] = regularPoints(6, 48).map((p) => p.join(','));
+  const ft = '50,14', fr = '80,68', fl = '20,68';
+  return {
+    faces: [
+      ['side', `${t} ${ur} ${ft}`], ['side', `${t} ${ft} ${ul}`],
+      ['side', `${ur} ${fr} ${ft}`], ['side', `${ur} ${lr} ${fr}`],
+      ['side', `${ul} ${ft} ${fl}`], ['side', `${ul} ${fl} ${ll}`],
+      ['low', `${lr} ${b} ${fr}`], ['low', `${fr} ${b} ${fl}`], ['low', `${fl} ${b} ${ll}`],
+      ['front', `${ft} ${fr} ${fl}`],
+    ],
+    edge: `${t} ${ur} ${lr} ${b} ${ll} ${ul}`,
+    shine: '12,68 12,30 44,11',
+    num: [50, 51, 33],
+  };
+}
+const D10_SHAPE = {
+  faces: [
+    ['side', '50,3 20,62 3,56'], ['side', '50,3 80,62 97,56'],
+    ['low', '3,56 20,62 50,78 50,97'], ['low', '97,56 80,62 50,78 50,97'],
+    ['front', '50,3 80,62 50,78 20,62'],
+  ],
+  edge: '50,3 97,56 50,97 3,56',
+  shine: '28,46 50,9 56,19',
+  num: [50, 54, 40],
+};
+/** Forme de chaque dé (repère 0-100) : faces [classe, points], contour, reflet, [x, y, taille] du chiffre. */
+const DIE_SHAPES = {
+  4: {
+    faces: [['low', '5,90 95,90 88,96 12,96'], ['front', '50,5 95,90 5,90']],
+    edge: '50,5 95,90 88,96 12,96 5,90',
+    shine: '20,76 47,16',
+    num: [50, 66, 36],
+  },
+  6: {
+    faces: [
+      ['side', '12,22 28,6 94,6 78,22'], ['low', '78,22 94,6 94,74 78,90'],
+      ['front', '12,22 78,22 78,90 12,90'],
+    ],
+    edge: '12,22 28,6 94,6 94,74 78,90 12,90',
+    shine: '18,82 18,28 70,28',
+    num: [45, 57, 42],
+  },
+  8: {
+    faces: [
+      ['side', '50,3 5,50 12,66'], ['side', '50,3 95,50 88,66'],
+      ['low', '5,50 12,66 50,97'], ['low', '95,50 88,66 50,97'], ['low', '12,66 88,66 50,97'],
+      ['front', '50,3 88,66 12,66'],
+    ],
+    edge: '50,3 95,50 50,97 5,50',
+    shine: '22,58 48,12',
+    num: [50, 45, 36],
+  },
+  10: D10_SHAPE,
+  12: d12Shape(),
+  20: d20Shape(),
+  100: D10_SHAPE, // dé de pourcentage : même solide que le d10
+};
+/** Dé sans forme dédiée (d2, d3, d1000…) : un jeton rond. */
+const ROUND_SHAPE = (() => {
+  const circle = ptsStr(regularPoints(24, 44));
+  return { faces: [['front', circle]], edge: circle, shine: '16,42 28,20 48,10', num: [50, 52, 36] };
+})();
+
+function prefersReducedMotion() {
+  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+/** Dés d'un jet, dans l'ordre du détail, avec leur couleur finale. */
+function rolledDiceOf(roll) {
+  const hIdx = hungerPoolIndex(roll);
+  const dice = [];
+  roll.parts.forEach((p, i) => {
+    if (p.type !== 'dice') return;
+    const pool = p.sides === 10 && !p.dropped.length; // pool de réussites (6+ réussit, paire de 10 critique)
+    const pairedTens = pool ? Math.floor(p.values.filter((v) => v === 10).length / 2) * 2 : 0;
+    let tenSeen = 0;
+    let faces = p.values.map((v, idx) => ({ v, dropped: p.dropped.includes(idx) }));
+    if (pool) faces = faces.sort((a, b) => b.v - a.v); // même ordre que le détail écrit
+    faces.forEach(({ v, dropped }) => {
+      let cls;
+      if (pool) cls = v === 10 ? (++tenSeen <= pairedTens ? 'crit' : 'ok') : d10Class(v);
+      else cls = v === p.sides ? 'max' : v === 1 ? 'min' : 'plain';
+      dice.push({ value: v, sides: p.sides, cls, hunger: i === hIdx, dropped });
+    });
+  });
+  return dice;
+}
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+/** Un dé vu de face, selon son nombre de faces : face avant claire, faces latérales et basses plus sombres. */
+function buildRolledDie(sides, index) {
+  const shape = DIE_SHAPES[sides] || ROUND_SHAPE;
+  const die = document.createElement('span');
+  die.className = 'rdie';
+  die.dataset.sides = sides;
+  die.style.setProperty('--i', index);
+  const shadow = document.createElement('span');
+  shadow.className = 'rdie-shadow';
+  const body = document.createElement('span');
+  body.className = 'rdie-body';
+  const svg = svgEl('svg', { viewBox: '0 0 100 100', 'aria-hidden': 'true' });
+  for (const [cls, points] of shape.faces) svg.appendChild(svgEl('polygon', { class: 'rdie-' + cls, points }));
+  svg.appendChild(svgEl('polygon', { class: 'rdie-edge', points: shape.edge }));
+  svg.appendChild(svgEl('polyline', { class: 'rdie-shine', points: shape.shine }));
+  const [x, y, size] = shape.num;
+  const num = svgEl('text', { class: 'rdie-num', x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
+  svg.appendChild(num);
+  body.appendChild(svg);
+  die.append(shadow, body);
+  // trois chiffres (d100) : police réduite pour rester dans la face
+  const setNum = (v) => {
+    const s = String(v);
+    num.textContent = s;
+    num.style.fontSize = (s.length >= 3 ? size * 0.7 : size) + 'px';
+  };
+  return { die, setNum };
+}
+/** Fait défiler des valeurs au hasard, de plus en plus lentement, puis pose la vraie valeur. */
+function tumbleDie(die, setNum, face, startMs, durMs) {
+  const t0 = performance.now() + startMs;
+  const random = () => 1 + Math.floor(Math.random() * face.sides);
+  const land = () => {
+    setNum(face.value);
+    die.classList.add('landed', 'is-' + face.cls);
+  };
+  if (durMs <= 0) return land();
+  let last = -Infinity;
+  setNum(random());
+  function tick(now) {
+    const k = (now - t0) / durMs;
+    if (k >= 1) return land();
+    const gap = 40 + 230 * Math.max(0, k) ** 2; // le dé ralentit
+    if (k >= 0 && now - last >= gap) {
+      last = now;
+      setNum(random());
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+/** Rangée de dés animés, avec le délai (ms) après lequel le dernier dé est posé. */
+function buildDiceTray(dice) {
+  const tray = document.createElement('div');
+  tray.className = 'rdie-tray';
+  const still = prefersReducedMotion();
+  const shown = dice.slice(0, RDIE_MAX_SHOWN);
+  shown.forEach((face, i) => {
+    const { die, setNum } = buildRolledDie(face.sides, i);
+    if (face.hunger) die.classList.add('hunger');
+    if (face.dropped) die.classList.add('dropped');
+    if (still) die.classList.add('still');
+    tray.appendChild(die);
+    tumbleDie(die, setNum, face, still ? 0 : i * RDIE_STAGGER_MS, still ? 0 : RDIE_TUMBLE_MS);
+  });
+  if (dice.length > shown.length) {
+    const more = document.createElement('span');
+    more.className = 'rdie-more';
+    more.textContent = '+' + (dice.length - shown.length);
+    tray.appendChild(more);
+  }
+  return { tray, landMs: still ? 150 : (shown.length - 1) * RDIE_STAGGER_MS + RDIE_TUMBLE_MS };
+}
+/** Bannière du bas, plus visible, pour les jets des joueurs (pas ceux du MJ). Renvoie le délai avant le résultat (ms). */
 function showRollBanner(roll) {
   const wrap = document.createElement('div');
   wrap.className = 'roll-banner';
-  const face = document.createElement('span');
-  face.className = 'rb-face';
-  face.textContent = DIE_FACES[0];
+  const dice = rolledDiceOf(roll);
+  let face;
+  let revealMs = 650;
+  if (dice.length) {
+    const t = buildDiceTray(dice);
+    face = t.tray;
+    revealMs = t.landMs + 80;
+    wrap.classList.add('has-dice');
+  } else {
+    face = document.createElement('span');
+    face.className = 'rb-face';
+    face.textContent = DIE_FACES[0];
+  }
   const info = document.createElement('div');
   info.className = 'rb-info';
   const who = document.createElement('div');
@@ -32,16 +243,18 @@ function showRollBanner(roll) {
   requestAnimationFrame(() => wrap.classList.add('show'));
 
   let i = 0;
-  const spin = setInterval(() => { face.textContent = DIE_FACES[i++ % DIE_FACES.length]; }, 90);
+  const spin = dice.length ? null : setInterval(() => { face.textContent = DIE_FACES[i++ % DIE_FACES.length]; }, 90);
   setTimeout(() => {
-    clearInterval(spin);
-    face.textContent = '🎲';
+    if (spin) {
+      clearInterval(spin);
+      face.textContent = '🎲';
+      face.classList.add('land');
+    }
     result.textContent = '';
     appendRollDetail(result, roll);
-    face.classList.add('land');
     if (rollHasCrit(roll)) {
       wrap.classList.add('crit');
-      face.classList.add('crit-land');
+      if (spin) face.classList.add('crit-land');
       const badge = document.createElement('div');
       badge.className = 'rb-crit-badge';
       badge.textContent = '✨ Critique !';
@@ -66,12 +279,13 @@ function showRollBanner(roll) {
       badge.textContent = '💀 Échec critique !';
       info.appendChild(badge);
     }
-  }, 650);
+  }, revealMs);
 
   setTimeout(() => {
     wrap.classList.remove('show');
     setTimeout(() => wrap.remove(), 300);
-  }, 9400);
+  }, revealMs + 8750);
+  return revealMs;
 }
 /** d10 hors valeur 10 : 6-9 = réussite (vert), sinon échec (rouge). */
 function d10Class(v) { return v >= 6 ? 'ok' : 'fail'; }
@@ -247,7 +461,7 @@ document.querySelectorAll('.die').forEach((b) => {
 document.querySelectorAll('#dicePanel [data-adv]').forEach((b) => {
   b.addEventListener('click', () => {
     rollAdv = b.dataset.adv;
-    document.querySelectorAll('#dicePanel [data-adv]').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('#dicePanel [data-adv]').forEach((x) => setRadioOn(x, x === b));
   });
 });
 $('rollForm').addEventListener('submit', (e) => {
@@ -270,3 +484,4 @@ function clampDifficulty(v) {
   return Math.min(20, Math.max(1, Number.isFinite(v) ? v : 3));
 }
 $('btnDice').addEventListener('click', () => document.body.classList.toggle('dice-closed'));
+closeOnEscape(() => !document.body.classList.contains('dice-closed'), () => document.body.classList.add('dice-closed'));

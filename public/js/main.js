@@ -4,6 +4,7 @@
  * Dernier fichier chargé : tout ce dont il dépend est déjà défini.
  */
 initViewport();
+syncTopbarHeight(); // cf. help.js
 window.addEventListener('resize', () => resizeViewport(viewport));
 if (innerWidth < 700) { document.body.classList.add('panel-closed'); document.body.classList.add('dice-closed'); }
 

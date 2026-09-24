@@ -19,8 +19,19 @@ $('btnCopyPlayers').addEventListener('click', () => copy(`${location.origin}/r/$
 $('btnCopyGM').addEventListener('click', () => copy(`${location.origin}/r/${roomId}#gm=${gmKey}`, 'Lien MJ copié : garde-le secret !'));
 $('btnFit').addEventListener('click', fitViewport);
 $('btnPanel').addEventListener('click', () => document.body.classList.toggle('panel-closed'));
+closeOnEscape(() => !document.body.classList.contains('panel-closed'), () => document.body.classList.add('panel-closed'));
+function closeRenamePanel() { $('renamePanel').hidden = true; }
 $('btnRenameRoom').addEventListener('click', () => {
-  const next = prompt('Nom du salon (laisser vide pour revenir au code) :', roomName || '');
-  if (next === null) return;
-  send({ t: 'room', name: next });
+  $('renameInput').value = roomName || '';
+  $('renamePanel').hidden = false;
+  $('renameInput').focus();
+});
+$('btnRenameClose').addEventListener('click', closeRenamePanel);
+$('btnRenameCancel').addEventListener('click', closeRenamePanel);
+closeOnEscape(() => !$('renamePanel').hidden, closeRenamePanel);
+closeOnClickOutside($('renamePanel').querySelector('.overlay-card'), () => !$('renamePanel').hidden, closeRenamePanel);
+$('renameForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  send({ t: 'room', name: $('renameInput').value });
+  closeRenamePanel();
 });
