@@ -48,7 +48,7 @@ function renderRoomLabel() {
   const label = roomName ? roomName : 'Salon ' + roomId;
   $('roomLabel').textContent = label;
   $('roomLabel').title = roomName ? 'Salon ' + roomId : '';
-  document.title = label + ' — Plateau JDR';
+  document.title = label + ' — ' + (game ? game.label : 'Plateau JDR');
 }
 function setConn(text, cls) {
   const el = $('conn');
@@ -59,6 +59,8 @@ function setConn(text, cls) {
 function handle(m) {
   switch (m.t) {
     case 'state': {
+      applyGame(m.game);
+      setupRules(!!m.rules);
       role = m.role;
       if (m.gmKey) {
         gmKey = m.gmKey; // MJ reconnu par son compte : clé récupérée pour ce navigateur
@@ -69,9 +71,11 @@ function handle(m) {
       $('roleBadge').textContent = isGM() ? 'MJ' : 'Joueur';
       roomName = m.roomName || null;
       renderRoomLabel();
+      // Joueur d'un salon en préparation : état réduit (fiche, journal, son jeton), plateau vidé
+      setRoomStatus(m.status, !!m.prep);
 
-      viewport.grid = m.grid;
-      setFog(viewport, m.fog);
+      if (m.grid) viewport.grid = m.grid;
+      setFog(viewport, m.fog || { enabled: false, cells: [] });
       viewport.strokes.clear();
       (m.strokes || []).forEach((s) => viewport.strokes.set(s.id, s));
 
@@ -80,29 +84,31 @@ function handle(m) {
 
       tokens.clear();
       m.tokens.forEach((t) => tokens.set(t.id, t));
-      online = new Set(m.online);
+      online = new Set(m.online || []);
       rolls.length = 0;
       (m.rolls || []).forEach((r) => rolls.push(r));
       renderDiceLog();
       if (isGM()) renderImageList();
       if (m.sheet) { currentSheet = m.sheet; renderSheetForm(); }
       if (m.journal) { currentJournal = m.journal; journalTokenId = youToken; if (!$('journalPanel').hidden) renderJournal(); }
-      initiative = m.initiative || initiative;
+      initiative = m.initiative || { active: false, round: 1, activeTokenId: null, entries: [] };
       renderInitiative();
-      dangerLevel = m.danger || 0;
-      renderDanger();
-      desperationLevel = m.desperation || 0;
-      renderDesperation();
+      gauges = m.gauges || {};
+      renderGauges();
       bannedPlayers = m.bannedPlayers || [];
       renderBannedList();
       if (youToken && tokens.has(youToken)) {
         selectedId = youToken;
       } else if (selectedId && !tokens.has(selectedId)) selectedId = null;
       viewport.dirty = true;
-      if (firstState) { fitViewport(); firstState = false; }
+      // en préparation, le plateau est vide : on cadrera à la réouverture
+      if (firstState && !m.prep) { fitViewport(); firstState = false; }
       refreshUI();
       break;
     }
+    case 'roomStatus':
+      setRoomStatus(m.status, false);
+      break;
     case 'tokenUpsert': {
       tokens.set(m.token.id, m.token);
       viewport.dirty = true;
@@ -232,18 +238,11 @@ function handle(m) {
       renderInitiative();
       viewport.dirty = true;
       break;
-    case 'danger': {
-      const prev = dangerLevel;
-      dangerLevel = m.level;
-      renderDanger();
-      gaugeChanged('danger', prev, m.level);
-      break;
-    }
-    case 'desperation': {
-      const prev = desperationLevel;
-      desperationLevel = m.level;
-      renderDesperation();
-      gaugeChanged('desperation', prev, m.level);
+    case 'gauge': {
+      const prev = gauges[m.key] || 0;
+      gauges[m.key] = m.level;
+      renderGauge(m.key);
+      gaugeChanged(m.key, prev, m.level);
       break;
     }
     case 'npcData':

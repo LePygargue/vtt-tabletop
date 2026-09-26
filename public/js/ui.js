@@ -61,9 +61,14 @@ function closeOnEscape(isOpen, close) {
 }
 /** Clic hors de `contentEl` ferme le panneau (réservé aux panneaux modaux fiche/journal :
  *  contrairement aux panneaux latéraux, ils bloquent le reste de l'interface tant qu'ils sont ouverts). */
-function closeOnClickOutside(contentEl, isOpen, close) {
+/**
+ * Ferme un panneau au clic en dehors. `toggleBtn` (facultatif) : bouton qui ouvre/ferme ce panneau ;
+ * ignoré ici, sinon son clic rouvrirait aussitôt le panneau qu'on vient de fermer au mousedown.
+ */
+function closeOnClickOutside(contentEl, isOpen, close, toggleBtn = null) {
   document.addEventListener('mousedown', (e) => {
     if (e.target.closest('dialog')) return; // clic dans une boîte de confirmation ouverte depuis ce panneau
+    if (toggleBtn && toggleBtn.contains(e.target)) return;
     if (isOpen() && !contentEl.contains(e.target)) close();
   });
 }
@@ -71,10 +76,10 @@ function closeOnClickOutside(contentEl, isOpen, close) {
 // Les tooltips (`data-tip`) ne se déclenchent qu'au survol/focus, invisibles au tactile : les
 // éléments non-bouton (danger/désespoir, labels du pool de dés) s'ouvrent aussi au tap.
 // (sauf les rangées de cases PV/Volonté : chaque tap y coche une case, le tooltip clignoterait)
-for (const el of document.querySelectorAll('[data-tip]:not(button):not(.dmg-grid)')) {
-  el.addEventListener('click', () => el.classList.toggle('tip-open'));
-}
+// Délégué au document : couvre aussi les éléments construits d'après le jeu (jauges, jets, fiche).
 document.addEventListener('click', (e) => {
+  const tipped = e.target.closest && e.target.closest('[data-tip]:not(button):not(.dmg-grid)');
+  if (tipped) tipped.classList.toggle('tip-open');
   for (const el of document.querySelectorAll('.tip-open')) {
     if (!el.contains(e.target)) el.classList.remove('tip-open');
   }
@@ -85,6 +90,7 @@ function refreshUI() {
   renderSelection();
   renderInitiative();
   syncNpcProfile();
+  renderSheetPortrait(); // portrait.js : suit le jeton affiché sur la fiche (image, cadrage)
   const v = viewport;
   if (!v) return;
   // grille
@@ -136,7 +142,7 @@ function renderTokenList() {
     if (hasNpcProfile(t)) {
       const info = document.createElement('span');
       info.className = 'badge npc-info';
-      info.textContent = 'ⓘ';
+      info.appendChild(iconSvg('info'));
       info.title = 'Présentation disponible';
       li.appendChild(info);
     }
@@ -203,7 +209,7 @@ function renderSelConditions(t) {
     const nm = document.createElement('span');
     nm.textContent = c;
     const rm = document.createElement('button');
-    rm.textContent = '✕';
+    setIcon(rm, 'close');
     rm.setAttribute('aria-label', `Retirer la condition « ${c} »`);
     rm.addEventListener('click', () => {
       update({ conditions: (t.conditions || []).filter((x) => x !== c) });
@@ -372,30 +378,30 @@ $('drawBarToggle').addEventListener('click', () => {
 }
 // sections repliables des panneaux latéraux : le titre devient un bouton
 const SECTIONS_COLLAPSED_KEY = 'plateau.sectionsCollapsed';
-{
-  let collapsedSet = new Set();
-  try { collapsedSet = new Set(JSON.parse(localStorage.getItem(SECTIONS_COLLAPSED_KEY) || '[]')); } catch (e) { /* stockage indisponible */ }
-  for (const h3 of document.querySelectorAll('#panel > section > h3, #dicePanel > section > h3')) {
-    const section = h3.parentElement;
-    const key = section.closest('aside').id + ':' + h3.textContent.trim();
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'section-toggle';
-    btn.append(...h3.childNodes);
-    h3.appendChild(btn);
-    const apply = (collapsed) => {
-      section.classList.toggle('collapsed', collapsed);
-      btn.setAttribute('aria-expanded', String(!collapsed));
-    };
-    apply(collapsedSet.has(key));
-    btn.addEventListener('click', () => {
-      const collapsed = !section.classList.contains('collapsed');
-      apply(collapsed);
-      if (collapsed) collapsedSet.add(key); else collapsedSet.delete(key);
-      try { localStorage.setItem(SECTIONS_COLLAPSED_KEY, JSON.stringify([...collapsedSet])); } catch (e) { /* réglage non mémorisé */ }
-    });
-  }
+let collapsedSet = new Set();
+try { collapsedSet = new Set(JSON.parse(localStorage.getItem(SECTIONS_COLLAPSED_KEY) || '[]')); } catch (e) { /* stockage indisponible */ }
+/** Rend repliable une section de panneau latéral (aussi appelé pour les sections créées par le jeu, voir dice-ui.js). */
+function makeSectionCollapsible(h3) {
+  const section = h3.parentElement;
+  const key = section.closest('aside').id + ':' + h3.textContent.trim();
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'section-toggle';
+  btn.append(...h3.childNodes);
+  h3.appendChild(btn);
+  const apply = (collapsed) => {
+    section.classList.toggle('collapsed', collapsed);
+    btn.setAttribute('aria-expanded', String(!collapsed));
+  };
+  apply(collapsedSet.has(key));
+  btn.addEventListener('click', () => {
+    const collapsed = !section.classList.contains('collapsed');
+    apply(collapsed);
+    if (collapsed) collapsedSet.add(key); else collapsedSet.delete(key);
+    try { localStorage.setItem(SECTIONS_COLLAPSED_KEY, JSON.stringify([...collapsedSet])); } catch (e) { /* réglage non mémorisé */ }
+  });
 }
+for (const h3 of document.querySelectorAll('#panel > section > h3, #dicePanel > section > h3')) makeSectionCollapsible(h3);
 
 $('drawClearAll').addEventListener('click', async () => {
   const ok = await confirmDialog({
@@ -460,21 +466,21 @@ function renderImageList() {
       send({ t: 'imageReorder', ids: [...ul.children].map((c) => c.dataset.id) });
     });
     const vis = document.createElement('button');
-    vis.textContent = m.hidden ? '🙈' : '👁';
+    setIcon(vis, m.hidden ? 'eyeOff' : 'eye');
     setTip(vis, m.hidden ? 'Afficher aux joueurs' : 'Cacher aux joueurs');
     vis.addEventListener('click', (e) => {
       e.stopPropagation();
       send({ t: 'imageUpdate', id: m.id, patch: { hidden: !m.hidden } });
     });
     const lock = document.createElement('button');
-    lock.textContent = m.locked ? '🔒' : '🔓';
+    setIcon(lock, m.locked ? 'lock' : 'unlock');
     setTip(lock, m.locked ? 'Déverrouiller (autoriser le déplacement)' : 'Verrouiller (empêcher le déplacement)');
     lock.addEventListener('click', (e) => {
       e.stopPropagation();
       send({ t: 'imageUpdate', id: m.id, patch: { locked: !m.locked } });
     });
     const del = document.createElement('button');
-    del.textContent = '🗑';
+    setIcon(del, 'trash');
     setTip(del, "Supprimer l'image");
     del.addEventListener('click', async (e) => {
       e.stopPropagation();

@@ -29,6 +29,7 @@ try {
 /* ------------------------------------------------------------------ */
 let role = null; // 'gm' | 'player'
 let roomName = null; // nom personnalisé du salon, donné par le MJ (facultatif)
+let roomStatus = 'open'; // 'open' | 'prep' (préparation : les joueurs ne voient que leur fiche et leur journal)
 let youToken = null;
 const tokens = new Map(); // tous les jetons du salon
 const images = new Map(); // toutes les images posées sur la grille commune
@@ -36,8 +37,8 @@ const rolls = [];
 const npcSheets = new Map(); // tokenId -> fiche PNJ rapide (MJ uniquement, chargée à la demande)
 const npcVisibility = new Map(); // tokenId de PNJ -> [tokenId de PC] ayant une dérogation quand il est caché
 let initiative = { active: false, round: 1, activeTokenId: null, entries: [] };
-let dangerLevel = 0; // niveau de dangerosité de la scène (façon étoiles GTA)
-let desperationLevel = 0; // Désespoir : jauge partagée par toute la cellule (Hunter)
+let game = null; // définition du jeu du salon (fiche, jets, jauges, thème), reçue avec l'état — voir game.js
+let gauges = {}; // jauges partagées par le salon (clé -> niveau), définies par le jeu (Danger/Désespoir pour Hunter)
 let bannedPlayers = []; // [{ playerId, name }] — MJ uniquement
 let online = new Set();
 let selectedId = null;

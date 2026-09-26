@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plateau JDR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Cinzel:wght@600;700&family=Oswald:wght@400;500;600&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Cormorant+SC:wght@600;700&display=swap">
 <link rel="stylesheet" href="/style.css">
+<script>
+// Thème du dernier jeu choisi, avant le premier rendu
+try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElement.dataset.game = g; } catch (e) {}
+</script>
 </head>
 <body class="home lobby">
 <main class="home-card">
@@ -16,6 +20,9 @@
   </p>
   <h1>Plateau JDR</h1>
   <p class="lead">Un plateau partagé en temps réel pour tes parties de jeu de rôle : jetons, carte, grille et brouillard de guerre.</p>
+
+  <h2 id="gamePickerTitle">Jeu</h2>
+  <div id="gamePicker" class="game-picker" role="group" aria-labelledby="gamePickerTitle"></div>
 
   <button id="create" class="primary big">Créer un salon (je suis le MJ)</button>
 
@@ -38,6 +45,39 @@
   const $ = (id) => document.getElementById(id);
   const msg = $('msg');
 
+  // Choix du jeu : change toute la DA de la page, et c'est le jeu des salons créés ensuite
+  const GAME_KEY = 'plateau.game';
+  let games = [];
+  let selectedGame = null;
+  function selectGame(id) {
+    selectedGame = id;
+    document.documentElement.dataset.game = id;
+    try { localStorage.setItem(GAME_KEY, id); } catch (e) {}
+    for (const b of $('gamePicker').children) b.setAttribute('aria-pressed', String(b.dataset.game === id));
+    const g = games.find((x) => x.id === id);
+    $('create').textContent = 'Créer un salon ' + (g ? g.label : '') + ' (je suis le MJ)';
+  }
+  const gameLabel = (id) => (games.find((g) => g.id === id) || {}).label || '';
+  const gamesReady = fetch('/api/games').then((r) => r.json()).then((data) => {
+    games = data.games;
+    for (const g of games) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'game-card';
+      b.dataset.game = g.theme;
+      const title = document.createElement('strong');
+      title.textContent = g.label;
+      const tagline = document.createElement('span');
+      tagline.textContent = g.tagline;
+      b.append(title, tagline);
+      b.addEventListener('click', () => selectGame(g.id));
+      $('gamePicker').appendChild(b);
+    }
+    let saved = null;
+    try { saved = localStorage.getItem(GAME_KEY); } catch (e) {}
+    selectGame(games.some((g) => g.id === saved) ? saved : data.default);
+  }).catch(() => {});
+
   fetch('/api/me').then((r) => r.json()).then((data) => {
     if (!data.user) return;
     $('account').hidden = false;
@@ -51,7 +91,11 @@
   $('create').addEventListener('click', async () => {
     msg.textContent = '';
     try {
-      const r = await fetch('/api/rooms', { method: 'POST' });
+      const r = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: selectedGame }),
+      });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'Erreur');
       try { localStorage.setItem('gm:' + data.id, data.gmKey); } catch (e) {}
@@ -73,11 +117,19 @@
     location.href = '/r/' + code;
   });
 
-  function addMine(id, name) {
+  function addMine(id, name, game, status) {
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = '/r/' + id;
     a.textContent = name ? name + ' (' + id + ')' : id;
+    const badge = document.createElement('span');
+    badge.className = 'game-badge';
+    badge.textContent = gameLabel(game);
+    badge.hidden = !badge.textContent;
+    const prep = document.createElement('span');
+    prep.className = 'game-badge prep-badge';
+    prep.textContent = 'En préparation';
+    prep.hidden = status !== 'prep';
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'danger';
@@ -113,6 +165,8 @@ Cette action est irréversible.`,
       del.disabled = false;
     });
     li.appendChild(a);
+    li.appendChild(badge);
+    li.appendChild(prep);
     li.appendChild(del);
     $('mineList').appendChild(li);
     $('mine').hidden = false;
@@ -121,13 +175,14 @@ Cette action est irréversible.`,
   // Salons rattachés au compte (serveur), complétés par les clés MJ connues de ce
   // navigateur : ouvrir un de ces derniers le rattache au compte.
   (async () => {
+    await gamesReady; // libellés des jeux pour les badges
     const shown = new Set();
     try {
       const r = await fetch('/api/rooms/mine');
       if (r.ok) {
         for (const room of (await r.json()).rooms) {
           shown.add(room.id);
-          addMine(room.id, room.name);
+          addMine(room.id, room.name, room.game, room.status);
         }
       }
     } catch (e) {}
@@ -142,7 +197,8 @@ Cette action est irréversible.`,
       try {
         const r = await fetch('/api/rooms/' + id);
         if (!r.ok) continue; // salon disparu : on ne l'affiche plus
-        addMine(id, (await r.json()).name);
+        const room = await r.json();
+        addMine(id, room.name, room.game, room.status);
       } catch (e) {}
     }
   })();

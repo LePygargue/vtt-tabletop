@@ -27,9 +27,16 @@ fs.writeFileSync(path.join(process.env.DATA_DIR, 'rooms.json'), JSON.stringify({
     fog: { enabled: true, cols: 50, rows: 38, data: Buffer.alloc(50 * 38, 1).toString('base64') },
     tokens: [{ id: LEGACY_TOKEN_ID, name: 'Vieux PNJ', color: '#112233', size: 1, x: 12, y: 34, owner: null, hidden: false, mapId: 'oldmap1' }],
     players: [],
+    danger: 3, // jauges Hunter à l'ancien format (champs du salon, avant room.gauges)
+    desperation: 9,
     strokes: [{ id: LEGACY_STROKE_ID, tool: 'pen', color: '#ff0000', width: 4, layer: 'shared', points: [10, 10, 20, 20] }],
   }],
 }));
+
+// Livre de règles factice pour Pathfinder (L'Appel de Cthulhu n'en a pas)
+const FAKE_PDF = Buffer.from('%PDF-1.4 livre de règles factice 0123456789');
+fs.mkdirSync(path.join(process.env.DATA_DIR, 'rules'), { recursive: true });
+fs.writeFileSync(path.join(process.env.DATA_DIR, 'rules', 'pf2e.pdf'), FAKE_PDF);
 
 const { server } = require('./server');
 const { createUser } = require('./lib/users');
@@ -144,6 +151,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const t = legacyState.tokens.find((tk) => tk.id === LEGACY_TOKEN_ID);
     assert(t && t.name === 'Vieux PNJ');
     assert.strictEqual(t.mapId, undefined);
+  });
+  check('ancien format : salon Hunter, jauges Danger/Désespoir reprises (bornées)', () => {
+    assert.strictEqual(legacyState.game.id, 'hunter');
+    assert.deepStrictEqual(legacyState.gauges, { danger: 3, desperation: 5 });
   });
   legacy.ws.close();
 
@@ -325,8 +336,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('portrait : refusé sans la clé MJ', () => assert.strictEqual(r.status, 403));
   r = await gm.authedFetch(base, portraitUrl, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: Buffer.from('<svg onload=alert(1)>') });
   check('portrait : format non image refusé', () => assert.strictEqual(r.status, 415));
-  r = await gm.authedFetch(base, `/api/rooms/${created.id}/tokens/${s1.youToken}/portrait`, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
-  check('portrait : impossible sur un jeton de joueur', () => assert.strictEqual(r.status, 404));
+  r = await p2.authedFetch(base, `/api/rooms/${created.id}/tokens/${s1.youToken}/portrait`, { method: 'POST', body: PNG });
+  check('portrait : un joueur ne peut pas changer celui du jeton d\'un autre', () => assert.strictEqual(r.status, 403));
   r = await gm.authedFetch(base, portraitUrl, { method: 'POST', headers: { 'X-GM-Key': created.gmKey }, body: PNG });
   const portUp = await p1.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === sel.id && m.token.portrait);
   const portraitFile = path.join(process.env.DATA_DIR, 'uploads', path.basename(portUp.token.portrait));
@@ -351,6 +362,40 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   gm.send({ t: 'tokenUpdate', id: sel.id, patch: { hidden: true } });
   await p1.waitFor((m) => m.t === 'tokenRemove' && m.id === sel.id);
+
+  // --- portrait du jeton d'un joueur (image + zone ronde qui remplit le jeton) ---
+  p2.clear();
+  r = await p1.authedFetch(base, `/api/rooms/${created.id}/tokens/${s1.youToken}/portrait`, { method: 'POST', body: PNG });
+  const ownPortrait = await r.json();
+  const ownUp = await p2.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === s1.youToken && m.token.portrait);
+  check('portrait de joueur : envoyé par son propriétaire, diffusé avec un cadrage par défaut', () => {
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(ownUp.token.portrait, ownPortrait.url);
+    assert.strictEqual(ownUp.token.crop, null);
+    assert.strictEqual('description' in ownUp.token, false);
+  });
+  p2.clear();
+  p1.send({ t: 'tokenUpdate', id: s1.youToken, patch: { crop: { x: 1.7, y: -3, s: 0.001 } } });
+  const cropUp = await p2.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === s1.youToken && m.token.crop);
+  check('portrait de joueur : cadrage hors bornes ramené dans les limites', () => {
+    assert.deepStrictEqual(cropUp.token.crop, { x: 1, y: 0, s: 0.05 });
+  });
+  p1.clear();
+  p2.send({ t: 'tokenUpdate', id: s1.youToken, patch: { crop: { x: 0.5, y: 0.5, s: 0.5 }, portrait: null } });
+  await sleep(100);
+  check("un joueur ne peut ni recadrer ni retirer le portrait du jeton d'un autre", () => {
+    assert.strictEqual(p1.count((m) => m.t === 'tokenUpsert' && m.token.id === s1.youToken), 0);
+  });
+  const ownPortraitFile = path.join(process.env.DATA_DIR, 'uploads', path.basename(ownPortrait.url));
+  p2.clear();
+  p1.send({ t: 'tokenUpdate', id: s1.youToken, patch: { portrait: null } });
+  const ownRm = await p2.waitFor((m) => m.t === 'tokenUpsert' && m.token.id === s1.youToken);
+  await sleep(100);
+  check('portrait de joueur retiré par son propriétaire : cadrage oublié, fichier supprimé', () => {
+    assert.strictEqual(ownRm.token.portrait, null);
+    assert.strictEqual(ownRm.token.crop, null);
+    assert(!fs.existsSync(ownPortraitFile));
+  });
 
   p1.send({ t: 'tokenRemove', id: s1.youToken });
   gm.send({ t: 'tokenRemove', id: s1.youToken });
@@ -928,6 +973,274 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert(sr.journal[0].text.includes('Deuxième entrée'));
   });
 
+  // --- salon en préparation : les joueurs n'ont plus que leur fiche et leur journal ---
+  gm.clear(); p1b.clear(); p2.clear();
+  p2.send({ t: 'roomStatus', status: 'prep' });
+  await sleep(100);
+  check('seul le MJ peut passer le salon en préparation', () => {
+    assert.strictEqual(p1b.count((m) => m.t === 'state'), 0);
+    assert.strictEqual(gm.count((m) => m.t === 'roomStatus'), 0);
+  });
+  gm.send({ t: 'roomStatus', status: 'prep' });
+  const prepState = await p1b.waitFor((m) => m.t === 'state' && m.prep);
+  await gm.waitFor((m) => m.t === 'roomStatus' && m.status === 'prep');
+  check('préparation : état réduit à la fiche, au journal et au jeton du joueur', () => {
+    assert.strictEqual(prepState.status, 'prep');
+    assert.deepStrictEqual(prepState.tokens.map((t) => t.id), [s1.youToken]);
+    assert.strictEqual(prepState.sheet.concept, 'Ex-flic');
+    assert.strictEqual(prepState.journal.length, 1);
+    for (const k of ['grid', 'fog', 'strokes', 'images', 'rolls', 'initiative', 'gauges', 'online']) assert.strictEqual(prepState[k], undefined, k);
+  });
+  p1b.clear(); p2.clear();
+  gm.send({ t: 'tokenAdd', name: 'Boss', x: 100, y: 100 });
+  const boss = await gm.waitFor((m) => m.t === 'tokenUpsert' && m.token.name === 'Boss');
+  gm.send({ t: 'draw', op: 'start', id: 'c'.repeat(16), tool: 'line', color: '#ff0000', width: 4, x: 0, y: 0 });
+  gm.send({ t: 'draw', op: 'remove', id: 'c'.repeat(16) });
+  gm.send({ t: 'roll', expr: '1d20' });
+  const prepRoll = await gm.waitFor((m) => m.t === 'rollResult' && m.roll.expr === '1d20');
+  gm.send({ t: 'move', id: s1.youToken, x: 250, y: 250, final: true });
+  p1b.send({ t: 'roll', expr: '1d6' });
+  p1b.send({ t: 'sheet', op: 'update', patch: { concept: 'Ex-flic en congé' } });
+  const prepSheet = await p1b.waitFor((m) => m.t === 'sheetData');
+  p1b.send({ t: 'journal', op: 'get' });
+  await p1b.waitFor((m) => m.t === 'journalData');
+  await sleep(150);
+  check("préparation : rien de ce que fait le MJ sur le plateau n'atteint les joueurs", () => {
+    assert.deepStrictEqual(p1b.msgs.map((m) => m.t).sort(), ['journalData', 'sheetData']);
+    assert.strictEqual(p2.msgs.length, 0);
+  });
+  check('préparation : un joueur ne lance pas de dés mais tient sa fiche et son journal', () => {
+    assert.strictEqual(gm.count((m) => m.t === 'rollResult' && m.roll.role === 'player'), 0);
+    assert.strictEqual(prepSheet.sheet.concept, 'Ex-flic en congé');
+  });
+  gm.send({ t: 'tokenRemove', id: boss.token.id });
+  p1b.send({ t: 'sheet', op: 'update', patch: { concept: 'Ex-flic' } });
+  await p1b.waitFor((m) => m.t === 'sheetData' && m.sheet.concept === 'Ex-flic');
+  p1b.clear();
+  gm.send({ t: 'roomStatus', status: 'open' });
+  const openState = await p1b.waitFor((m) => m.t === 'state' && !m.prep);
+  check('réouverture : état complet, sans le PNJ supprimé ni les jets de la préparation', () => {
+    assert.strictEqual(openState.status, 'open');
+    assert(openState.images.some((i) => i.id === image1Id));
+    assert(!openState.tokens.some((t) => t.id === boss.token.id));
+    assert.strictEqual(openState.tokens.find((t) => t.id === s1.youToken).x, 250);
+    assert(!openState.rolls.some((r2) => r2.id === prepRoll.roll.id));
+    assert(openState.rolls.some((r2) => r2.id === rPublic.roll.id));
+  });
+
+  // --- multi-jeux : résolution des tests (aléa injecté) ---
+  const { degreeOf } = require('./lib/games/pf2e');
+  const { tierOf } = require('./lib/games/coc7');
+  const hunterGame = require('./lib/games/hunter');
+  const { rollPercentile } = require('./lib/dice');
+  /** Aléa déterministe : renvoie les valeurs fournies, dans l'ordre. */
+  const rngSeq = (...values) => () => values.shift();
+  check('PF2 : degrés de réussite (DD ± 10, 20 et 1 naturels)', () => {
+    assert.strictEqual(degreeOf(10, 25, 15), 3);
+    assert.strictEqual(degreeOf(10, 15, 15), 2);
+    assert.strictEqual(degreeOf(10, 14, 15), 1);
+    assert.strictEqual(degreeOf(5, 5, 15), 0);
+    assert.strictEqual(degreeOf(20, 14, 15), 2); // échec amélioré en succès
+    assert.strictEqual(degreeOf(20, 30, 15), 3); // déjà au maximum
+    assert.strictEqual(degreeOf(1, 26, 15), 2); // succès critique dégradé
+    assert.strictEqual(degreeOf(1, 5, 15), 0);
+  });
+  check("L'Appel de Cthulhu : niveaux de réussite", () => {
+    assert.strictEqual(tierOf(1, 10), 'critical');
+    assert.strictEqual(tierOf(100, 80), 'fumble');
+    assert.strictEqual(tierOf(97, 40), 'fumble'); // 96-100 sous 50
+    assert.strictEqual(tierOf(97, 60), 'failure'); // seul 100 au-delà
+    assert.strictEqual(tierOf(10, 50), 'extreme');
+    assert.strictEqual(tierOf(25, 50), 'hard');
+    assert.strictEqual(tierOf(26, 50), 'regular');
+    assert.strictEqual(tierOf(51, 50), 'failure');
+  });
+  check('d100 : dés bonus / malus sur les dizaines, 00 + 0 = 100', () => {
+    // unités 0, dizaines 0 et 3 : candidats 100 et 30
+    assert.strictEqual(rollPercentile(1, rngSeq(0, 0, 3)).total, 30);
+    assert.strictEqual(rollPercentile(-1, rngSeq(0, 0, 3)).total, 100);
+    const r0 = rollPercentile(0, rngSeq(7, 4));
+    assert.strictEqual(r0.total, 47);
+    assert.deepStrictEqual(r0.part.dropped, []);
+    const r2 = rollPercentile(2, rngSeq(5, 8, 2, 6));
+    assert.deepStrictEqual(r2.part.values, [85, 25, 65]);
+    assert.deepStrictEqual(r2.part.dropped, [0, 2]);
+  });
+  check('Hunter : pool de d10, Overreach sur un 1 des dés Désespoir (le Danger monte)', () => {
+    const levels = { danger: 1, desperation: 1 };
+    const roll = hunterGame.resolveCheck({ id: 'pool', normal: 2, desperation: 1, difficulty: 2 }, { rng: rngSeq(6, 7, 1), gauges: levels });
+    assert.strictEqual(roll.successes, 2);
+    assert.strictEqual(roll.passed, true);
+    assert.strictEqual(roll.outcome, 'overreach');
+    assert.strictEqual(roll.hungerIndex, 1);
+    assert.strictEqual(roll.dangerDelta, 1);
+    assert.deepStrictEqual(roll.gaugesChanged, ['danger']);
+    assert.strictEqual(levels.danger, 2);
+    const despair = hunterGame.resolveCheck({ id: 'pool', normal: 1, desperation: 1, difficulty: 3 }, { rng: rngSeq(10, 1), gauges: levels });
+    assert.strictEqual(despair.outcome, 'despair');
+    assert.strictEqual(levels.danger, 2);
+    assert.strictEqual(hunterGame.resolveCheck({ id: 'pool', normal: 0, desperation: 0 }, { rng: rngSeq(), gauges: levels }), null);
+  });
+
+  // --- multi-jeux : choix du jeu à la création, fiche/jets/jauges propres au jeu ---
+  const gamesList = await (await fetch(base + '/api/games')).json();
+  check('liste des jeux proposés', () => {
+    assert.deepStrictEqual(gamesList.games.map((g) => g.id), ['hunter', 'pf2e', 'coc7']);
+    assert.strictEqual(gamesList.default, 'hunter');
+  });
+  check('salon créé sans jeu : Hunter', () => assert.strictEqual(sr.game.id, 'hunter'));
+  gm.send({ t: 'roll', check: { id: 'pool', normal: 3, desperation: 0, difficulty: 1 } });
+  const huntRoll = await gm.waitFor((m) => m.t === 'rollResult' && m.roll.kind === 'check');
+  check('Hunter : jet de pool résolu par le serveur', () => {
+    assert.strictEqual(huntRoll.roll.expr, '3d10');
+    assert.strictEqual(huntRoll.roll.difficulty, 1);
+    assert(Number.isInteger(huntRoll.roll.successes));
+  });
+  const createGame = async (game) => (await gm.authedFetch(base, '/api/rooms', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game }),
+  })).json();
+  const pfRoom = await createGame('pf2e');
+  const cocRoom = await createGame('coc7');
+  const oddRoom = await createGame('monopoly');
+  check('création avec un jeu, jeu inconnu remplacé par Hunter', () => {
+    assert.strictEqual(pfRoom.game, 'pf2e');
+    assert.strictEqual(cocRoom.game, 'coc7');
+    assert.strictEqual(oddRoom.game, 'hunter');
+  });
+  const mineGames = await (await gm.authedFetch(base, '/api/rooms/mine')).json();
+  const pfInfo = await (await gm.authedFetch(base, '/api/rooms/' + pfRoom.id)).json();
+  check("le jeu du salon est donné à l'accueil", () => {
+    assert.strictEqual(mineGames.rooms.find((x) => x.id === pfRoom.id).game, 'pf2e');
+    assert.strictEqual(pfInfo.game, 'pf2e');
+  });
+
+  const gmPf = new Client('MJ-PF');
+  const alicePf = new Client('Alice-PF');
+  await gmPf.login(base, 'gm', 'mj-password-1');
+  await alicePf.login(base, 'alice', 'alice-password-1');
+  await Promise.all([gmPf.connectWs(base, wsBase), alicePf.connectWs(base, wsBase)]);
+  gmPf.send({ t: 'join', room: pfRoom.id });
+  await gmPf.waitFor((m) => m.t === 'state');
+  alicePf.send({ t: 'join', room: pfRoom.id });
+  const pfState = await alicePf.waitFor((m) => m.t === 'state');
+  check("PF2 : définition du jeu dans l'état (sans code serveur), fiche par défaut, aucune jauge", () => {
+    assert.strictEqual(pfState.game.id, 'pf2e');
+    assert.strictEqual(pfState.game.resolveCheck, undefined);
+    assert(pfState.game.checks.some((c) => c.id === 'd20'));
+    assert.deepStrictEqual(pfState.gauges, {});
+    assert.strictEqual(pfState.sheet.level, 1);
+    assert.deepStrictEqual(pfState.sheet.skills.acrobaties, { rank: 0, bonus: 0 });
+    assert.strictEqual(pfState.sheet.attributes.for, 0);
+    assert.strictEqual(pfState.sheet.attributes.force, undefined); // pas de fiche Hunter
+  });
+  alicePf.send({
+    t: 'sheet', op: 'update',
+    patch: { level: 99, attributes: { dex: 4, force: 3 }, skills: { acrobaties: { rank: 9, bonus: 1 } }, hp: 5000, hpMax: 30, heroPoints: 7, bogus: 'x' },
+  });
+  const pfSheet = await gmPf.waitFor((m) => m.t === 'sheetData' && m.sheet.attributes.dex === 4);
+  check('livre de règles signalé dans l\'état quand un PDF existe pour le jeu', () => {
+    assert.strictEqual(pfState.rules, true);
+    assert.strictEqual(sr.rules, false); // salon Hunter : pas de PDF dans ce test
+  });
+  const rulesAnon = await fetch(base + '/rules/pf2e.pdf');
+  const rulesFull = await alicePf.authedFetch(base, '/rules/pf2e.pdf');
+  const rulesFullBody = Buffer.from(await rulesFull.arrayBuffer());
+  const rulesPart = await alicePf.authedFetch(base, '/rules/pf2e.pdf', { headers: { Range: 'bytes=5-9' } });
+  const rulesTail = await alicePf.authedFetch(base, '/rules/pf2e.pdf', { headers: { Range: 'bytes=-4' } });
+  const rulesBad = await alicePf.authedFetch(base, '/rules/pf2e.pdf', { headers: { Range: 'bytes=999-' } });
+  const rulesNone = await alicePf.authedFetch(base, '/rules/coc7.pdf');
+  const rulesOdd = await alicePf.authedFetch(base, '/rules/..%2fusers.pdf');
+  check('livre de règles : réservé aux comptes, envoyé en entier ou par morceaux (Range)', () => {
+    assert.strictEqual(rulesAnon.status, 404);
+    assert.strictEqual(rulesFull.status, 200);
+    assert.strictEqual(rulesFull.headers.get('content-type'), 'application/pdf');
+    assert.strictEqual(rulesFull.headers.get('accept-ranges'), 'bytes');
+    assert.strictEqual(rulesFull.headers.get('x-frame-options'), 'DENY'); // lu par PDF.js, jamais en iframe
+    assert(rulesFullBody.equals(FAKE_PDF));
+    assert.strictEqual(rulesPart.status, 206);
+    assert.strictEqual(rulesPart.headers.get('content-range'), `bytes 5-9/${FAKE_PDF.length}`);
+    return Promise.resolve();
+  });
+  const partBody = Buffer.from(await rulesPart.arrayBuffer());
+  const tailBody = Buffer.from(await rulesTail.arrayBuffer());
+  check('livre de règles : plages de fin, plage invalide, jeu sans PDF', () => {
+    assert(partBody.equals(FAKE_PDF.subarray(5, 10)));
+    assert.strictEqual(rulesTail.status, 206);
+    assert(tailBody.equals(FAKE_PDF.subarray(-4)));
+    assert.strictEqual(rulesBad.status, 416);
+    assert.strictEqual(rulesNone.status, 404);
+    assert.strictEqual(rulesOdd.status, 404);
+  });
+  check('PF2 : patch de fiche validé par le schéma (bornes, champs inconnus ignorés)', () => {
+    assert.strictEqual(pfSheet.sheet.level, 20);
+    assert.deepStrictEqual(pfSheet.sheet.skills.acrobaties, { rank: 4, bonus: 1 });
+    assert.strictEqual(pfSheet.sheet.hp, 999);
+    assert.strictEqual(pfSheet.sheet.hpMax, 30);
+    assert.strictEqual(pfSheet.sheet.heroPoints, 3);
+    assert.strictEqual(pfSheet.sheet.bogus, undefined);
+    assert.strictEqual(pfSheet.sheet.attributes.force, undefined);
+  });
+  gmPf.send({ t: 'gauge', key: 'danger', level: 3 }); // pas de jauge Danger dans ce jeu
+  alicePf.send({ t: 'roll', check: { id: 'd20', modifier: 7, dc: 20 } });
+  const pfRoll = await gmPf.waitFor((m) => m.t === 'rollResult' && m.roll.kind === 'check');
+  check('PF2 : test d20 contre DD résolu par le serveur', () => {
+    const nat = pfRoll.roll.parts[0].values[0];
+    assert.strictEqual(pfRoll.roll.expr, '1d20+7');
+    assert.strictEqual(pfRoll.roll.total, nat + 7);
+    assert.strictEqual(pfRoll.roll.target, 20);
+    const degree = degreeOf(nat, nat + 7, 20);
+    assert.strictEqual(pfRoll.roll.tier, ['critFailure', 'failure', 'success', 'critSuccess'][degree]);
+    assert(pfRoll.roll.tierLabel);
+  });
+  check("jauge inconnue du jeu refusée", () => assert.strictEqual(gmPf.count((m) => m.t === 'gauge'), 0));
+  gmPf.send({ t: 'initiative', op: 'addRoll', tokenId: pfState.youToken, mod: 2 });
+  const pfInit = await gmPf.waitFor((m) => m.t === 'rollResult' && m.roll.by.startsWith('Initiative'));
+  check("PF2 : initiative au d20", () => assert.strictEqual(pfInit.roll.expr, '1d20+2'));
+  gmPf.send({ t: 'npc', op: 'get', tokenId: pfState.youToken }); // jeton de joueur : ignoré
+  gmPf.send({ t: 'tokenAdd', name: 'Gobelin', x: 0, y: 0 });
+  const pfNpc = await gmPf.waitFor((m) => m.t === 'selectToken');
+  gmPf.send({ t: 'npc', op: 'update', tokenId: pfNpc.id, patch: { ac: 18, fort: 99, willpower: 3 } });
+  const pfNpcData = await gmPf.waitFor((m) => m.t === 'npcData' && m.sheet.ac === 18);
+  check('PF2 : fiche PNJ du jeu (CA, sauvegardes), champs validés', () => {
+    assert.strictEqual(pfNpcData.sheet.fort, 50);
+    assert.strictEqual(pfNpcData.sheet.willpower, undefined);
+    assert.strictEqual(pfNpcData.sheet.hpMax, 20);
+  });
+
+  const aliceCoc = new Client('Alice-CoC');
+  const gmCoc = new Client('MJ-CoC');
+  await aliceCoc.login(base, 'alice', 'alice-password-1');
+  await gmCoc.login(base, 'gm', 'mj-password-1');
+  await Promise.all([aliceCoc.connectWs(base, wsBase), gmCoc.connectWs(base, wsBase)]);
+  aliceCoc.send({ t: 'join', room: cocRoom.id });
+  const cocState = await aliceCoc.waitFor((m) => m.t === 'state');
+  gmCoc.send({ t: 'join', room: cocRoom.id });
+  await gmCoc.waitFor((m) => m.t === 'state');
+  check("L'Appel de Cthulhu : fiche par défaut (compétences de base)", () => {
+    assert.strictEqual(cocState.game.id, 'coc7');
+    assert.strictEqual(cocState.sheet.skills.bibliotheque, 20);
+    assert.strictEqual(cocState.sheet.san, 50);
+    assert.strictEqual(cocState.sheet.luck, 50);
+  });
+  aliceCoc.send({ t: 'roll', check: { id: 'd100', value: 50, bonus: 1, difficulty: 'hard' } });
+  const cocRoll = await aliceCoc.waitFor((m) => m.t === 'rollResult' && m.roll.kind === 'check');
+  check("L'Appel de Cthulhu : d100 avec dé bonus, niveau de réussite cohérent", () => {
+    const part = cocRoll.roll.parts[0];
+    assert.strictEqual(part.values.length, 2);
+    assert.strictEqual(part.dropped.length, 1);
+    assert.strictEqual(cocRoll.roll.total, Math.min(...part.values));
+    assert.strictEqual(cocRoll.roll.tier, tierOf(cocRoll.roll.total, 50));
+    assert.strictEqual(cocRoll.roll.passed, ['critical', 'extreme', 'hard'].includes(cocRoll.roll.tier));
+  });
+  gmCoc.send({ t: 'initiative', op: 'addRoll', tokenId: cocState.youToken, mod: 2 }); // pas de dé d'initiative : ignoré
+  gmCoc.send({ t: 'initiative', op: 'add', tokenId: cocState.youToken, score: 45 });
+  const cocInit = await gmCoc.waitFor((m) => m.t === 'initiative' && m.initiative.entries.length);
+  check("L'Appel de Cthulhu : initiative au score (DEX), sans jet", () => {
+    assert.strictEqual(cocInit.initiative.entries[0].score, 45);
+    assert.strictEqual(gmCoc.count((m) => m.t === 'rollResult' && m.roll.by.startsWith('Initiative')), 0);
+  });
+  for (const c of [gmPf, alicePf, aliceCoc, gmCoc]) c.ws.close();
+
   // --- persistance (un fichier JSON par salon, sous data/rooms/) ---
   await sleep(1300);
   const roomsDir = path.join(process.env.DATA_DIR, 'rooms');
@@ -942,6 +1255,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.strictEqual(savedRoom.images.length, 1);
     assert.strictEqual(savedRoom.images[0].id, image1Id);
     assert.strictEqual(savedRoom.name, 'La Crypte des Ombres');
+    assert.strictEqual(savedRoom.game, 'hunter');
+    assert.strictEqual(savedRoom.status, 'open');
+    const savedPf = JSON.parse(fs.readFileSync(path.join(roomsDir, `${pfRoom.id}.json`), 'utf8'));
+    assert.strictEqual(savedPf.game, 'pf2e');
+    assert.deepStrictEqual(savedPf.gauges, {});
   });
   check('persistance JSON des fiches de personnage', () => {
     const aliceSheet = savedRoom.sheets.find((s) => s.playerId === s1.playerId);

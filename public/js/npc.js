@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Fiche PNJ rapide (MJ uniquement) : PV/PV max, traits libres, notes.
+ * Fiche PNJ rapide (MJ uniquement) : quelques valeurs et du texte libre, selon le jeu.
  * Jamais envoyée aux joueurs (contrairement à sheet.js) ; chargée à la demande
  * par tokenId au lieu d'être poussée dans l'état initial du salon.
  */
@@ -17,18 +17,57 @@ function openNpcQuick(tokenId) {
   }
 }
 
+let npcRenderers = []; // (fiche PNJ) => void, un par champ du formulaire
+
+/** Formulaire de la fiche PNJ rapide, construit depuis le schéma du jeu (game.npcSheet). */
+function buildNpcForm() {
+  const root = $('npcFields');
+  root.textContent = '';
+  npcRenderers = [];
+  const numberInput = (f) => {
+    const input = el('input');
+    input.type = 'number';
+    input.min = f.min;
+    input.max = f.max;
+    input.step = 1;
+    input.addEventListener('change', () => sendNpcPatch({ [f.key]: intOr(input.value, f.default ?? 0) }));
+    npcRenderers.push((s) => setFieldValue(input, s[f.key]));
+    return input;
+  };
+  const textInput = (f) => {
+    const input = el('input');
+    input.maxLength = f.max || 60;
+    if (f.fallback) input.placeholder = f.fallback;
+    input.addEventListener('input', () => queueNpcPatch({ [f.key]: input.value }));
+    npcRenderers.push((s) => setFieldValue(input, s[f.key] || ''));
+    return input;
+  };
+  const inline = (f) => labelled(f.label, f.type === 'number' ? numberInput(f) : textInput(f), f.tip);
+  for (const f of game.npcSheet.fields) {
+    if (Array.isArray(f)) {
+      const row = root.appendChild(el('div', 'sheet-row3'));
+      for (const x of f) row.appendChild(inline(x));
+    } else if (f.type === 'boxes') {
+      const grid = root.appendChild(el('div', 'box-grid'));
+      npcRenderers.push((s) => renderStatBoxes(grid, s[f.key] || 0));
+    } else if (f.type === 'multiline') {
+      const ta = el('textarea');
+      ta.rows = f.rows || 3;
+      ta.maxLength = f.max || 500;
+      ta.addEventListener('input', () => queueNpcPatch({ [f.key]: ta.value }));
+      npcRenderers.push((s) => setFieldValue(ta, s[f.key] || ''));
+      root.appendChild(labelled(f.label, ta));
+    } else {
+      root.appendChild(inline(f));
+    }
+  }
+  if (currentNpcTokenId && npcSheets.has(currentNpcTokenId)) renderNpcQuick();
+}
+
 function renderNpcQuick() {
   const s = npcSheets.get(currentNpcTokenId);
   if (!s) return;
-  renderStatBoxes('npcHpBoxes', s.hp);
-  if (document.activeElement !== $('npcHp')) $('npcHp').value = s.hp;
-  if (document.activeElement !== $('npcHpMax')) $('npcHpMax').value = s.hpMax;
-  renderStatBoxes('npcWillpowerBoxes', s.willpower);
-  if (document.activeElement !== $('npcWillpower')) $('npcWillpower').value = s.willpower;
-  if (document.activeElement !== $('npcWillpowerMax')) $('npcWillpowerMax').value = s.willpowerMax;
-  if (document.activeElement !== $('npcDefense')) $('npcDefense').value = s.defense;
-  if (document.activeElement !== $('npcTraits')) $('npcTraits').value = s.traits || '';
-  if (document.activeElement !== $('npcNotes')) $('npcNotes').value = s.notes || '';
+  for (const r of npcRenderers) r(s);
   renderNpcVisibility();
 }
 
@@ -78,11 +117,3 @@ function queueNpcPatch(patch, delay = 600) {
     sendNpcPatch(p);
   }, delay);
 }
-
-$('npcHp').addEventListener('change', () => sendNpcPatch({ hp: parseInt($('npcHp').value, 10) || 0 }));
-$('npcHpMax').addEventListener('change', () => sendNpcPatch({ hpMax: parseInt($('npcHpMax').value, 10) || 1 }));
-$('npcWillpower').addEventListener('change', () => sendNpcPatch({ willpower: parseInt($('npcWillpower').value, 10) || 0 }));
-$('npcWillpowerMax').addEventListener('change', () => sendNpcPatch({ willpowerMax: parseInt($('npcWillpowerMax').value, 10) || 1 }));
-$('npcDefense').addEventListener('change', () => sendNpcPatch({ defense: parseInt($('npcDefense').value, 10) || 0 }));
-$('npcTraits').addEventListener('input', () => queueNpcPatch({ traits: $('npcTraits').value }));
-$('npcNotes').addEventListener('input', () => queueNpcPatch({ notes: $('npcNotes').value }));

@@ -168,11 +168,20 @@ function visibleWorldRect(v) {
   return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) };
 }
 
+/** Couleurs du plateau lues dans le thème du jeu (variables CSS), relues à chaque changement de jeu. */
+const themeColors = { bg: '#0a0d0c', fog: '#0d1512' };
+function refreshThemeColors() {
+  const css = getComputedStyle(document.documentElement);
+  themeColors.bg = css.getPropertyValue('--canvas-bg').trim() || '#0a0d0c';
+  themeColors.fog = css.getPropertyValue('--canvas-fog').trim() || '#0d1512';
+  if (typeof viewport !== 'undefined' && viewport) viewport.dirty = true;
+}
+
 function drawViewport(v) {
   v.dirty = false;
   const ctx = v.ctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#0a0d0c';
+  ctx.fillStyle = themeColors.bg;
   ctx.fillRect(0, 0, v.canvas.width, v.canvas.height);
   ctx.setTransform(v.dpr * v.cam.s, 0, 0, v.dpr * v.cam.s, v.dpr * v.cam.x, v.dpr * v.cam.y);
 
@@ -216,7 +225,7 @@ function drawViewport(v) {
     const cx0 = Math.floor(rect.x0 / g), cx1 = Math.floor(rect.x1 / g);
     const cy0 = Math.floor(rect.y0 / g), cy1 = Math.floor(rect.y1 / g);
     ctx.save();
-    ctx.fillStyle = '#0d1512';
+    ctx.fillStyle = themeColors.fog;
     ctx.globalAlpha = isGM() ? 0.55 : 1;
     for (let cy = cy0; cy <= cy1; cy++) {
       for (let cx = cx0; cx <= cx1; cx++) {
@@ -260,12 +269,20 @@ function drawToken(v, t) {
   const r = radiusOf(v, t);
   ctx.save();
   if (t.hidden) ctx.globalAlpha = 0.5;
+  // portrait d'un joueur (zone ronde choisie sur sa fiche) ; couleur + initiales tant qu'il charge
+  const portrait = t.pc && t.portrait ? portraitImage(t.portrait) : null;
   ctx.beginPath();
   ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
   ctx.fillStyle = t.color;
   ctx.fill();
-  ctx.lineWidth = Math.max(2, r * 0.08);
-  ctx.strokeStyle = t.hidden ? '#fff' : '#0009';
+  if (portrait) {
+    ctx.save();
+    ctx.clip();
+    drawPortraitCrop(ctx, portrait, t.crop, t.x, t.y, r);
+    ctx.restore();
+  }
+  ctx.lineWidth = Math.max(2, r * (portrait ? 0.1 : 0.08));
+  ctx.strokeStyle = t.hidden ? '#fff' : portrait ? t.color : '#0009';
   if (t.hidden) ctx.setLineDash([r * 0.3, r * 0.2]);
   ctx.stroke();
   ctx.setLineDash([]);
@@ -326,13 +343,15 @@ function drawToken(v, t) {
     ctx.textBaseline = 'middle';
     ctx.fillText('i', bx, by + br * 0.08);
   }
-  // initiales
-  const initials = Array.from(t.name).slice(0, 2).join('').toUpperCase();
-  ctx.fillStyle = textColorFor(t.color);
-  ctx.font = `600 ${Math.max(10, r * 0.85)}px system-ui, sans-serif`;
+  // initiales (sauf sous un portrait)
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(initials, t.x, t.y + r * 0.04);
+  if (!portrait) {
+    const initials = Array.from(t.name).slice(0, 2).join('').toUpperCase();
+    ctx.fillStyle = textColorFor(t.color);
+    ctx.font = `600 ${Math.max(10, r * 0.85)}px system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(initials, t.x, t.y + r * 0.04);
+  }
   // nom sous le jeton
   const fs = Math.max(11 / v.cam.s, v.grid.size * 0.26);
   ctx.font = `600 ${fs}px system-ui, sans-serif`;

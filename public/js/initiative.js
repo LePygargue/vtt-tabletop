@@ -28,7 +28,7 @@ function renderInitiative() {
           send({ t: 'initiative', op: 'score', tokenId: e.tokenId, score: parseInt(score.value, 10) || 0 });
         });
         const rm = document.createElement('button');
-        rm.textContent = '✕';
+        setIcon(rm, 'close');
         rm.setAttribute('aria-label', `Retirer ${e.name} de l'initiative`);
         rm.addEventListener('click', () => send({ t: 'initiative', op: 'remove', tokenId: e.tokenId }));
         li.append(score, rm);
@@ -85,6 +85,13 @@ $('initAdd').addEventListener('click', () => {
   send({ t: 'initiative', op: 'add', tokenId, score });
   $('initScoreInput').value = 0;
 });
+/** Dé d'initiative du jeu (bouton 🎲) : absent quand le jeu classe à la caractéristique (DEX de L'Appel de Cthulhu). */
+function setupInitiativeForGame() {
+  const die = game.initiative && game.initiative.die;
+  $('initAddRoll').hidden = !die;
+  if (die) $('initAddRoll').dataset.tip = `Lance ${die} + le modificateur saisi`;
+  $('initScoreInput').dataset.tip = (game.initiative && game.initiative.tip) || 'Score exact';
+}
 $('initAddRoll').addEventListener('click', () => {
   const tokenId = $('initTokenSelect').value;
   if (!tokenId) return;

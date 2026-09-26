@@ -5,36 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Plateau JDR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Cinzel:wght@600;700&family=Oswald:wght@400;500;600&family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Cormorant+SC:wght@600;700&display=swap">
 <link rel="stylesheet" href="/style.css">
+<script>
+// Thème du dernier jeu vu, avant le premier rendu (le vrai jeu du salon arrive avec l'état)
+try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElement.dataset.game = g; } catch (e) {}
+</script>
 </head>
 <body class="room">
 <a class="skip-link" href="#panel">Aller au panneau</a>
 <main id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas></main>
 
+<section id="prepScreen" aria-labelledby="prepTitle">
+  <div class="prep-card">
+    <h2 id="prepTitle">Le MJ prépare la partie</h2>
+    <p>Le plateau reviendra dès qu'il sera prêt. En attendant, ta fiche et ton journal restent à ta disposition.</p>
+    <div class="row prep-actions">
+      <button id="prepOpenSheet" type="button" class="primary" data-icon="sheet">Ma fiche</button>
+      <button id="prepOpenJournal" type="button" data-icon="journal">Mon journal</button>
+    </div>
+  </div>
+</section>
+
 <header id="topbar">
   <strong id="roomLabel">Salon</strong>
-  <button id="btnRenameRoom" class="gm" data-tip="Renommer le salon" aria-label="Renommer le salon">✎</button>
+  <button id="btnRenameRoom" class="gm" data-icon="edit" data-tip="Renommer le salon" aria-label="Renommer le salon"></button>
   <span id="roleBadge" class="badge"></span>
   <span id="conn" class="badge muted">connexion…</span>
+  <span id="prepBadge" class="badge bad" hidden>En préparation</span>
   <span class="topbar-sep"></span>
-  <div id="dangerWrap" class="danger-wrap" tabindex="0" data-tip="Danger : à quel point la cellule est repérée par ses ennemis. Monte selon l'histoire ou quand les chasseurs surjouent (Overreach) ; ne redescend que si le groupe se fait discret.">
-    <span class="danger-label">Danger</span>
-    <div id="dangerMeter" class="danger-meter"></div>
-  </div>
-  <div id="desperationWrap" class="danger-wrap" tabindex="0" data-tip="Désespoir : jauge partagée par toute la cellule, ajoute des dés à vos tests dans votre domaine (Creed Field). Monte ou descend selon les événements de l'histoire (décision du MJ).">
-    <span class="danger-label">Désespoir</span>
-    <div id="desperationMeter" class="danger-meter"></div>
-  </div>
+  <div id="gauges" class="gauges" hidden></div>
   <span id="initiativeBadge" class="badge ok" hidden></span>
   <span class="spacer"></span>
+  <button id="btnPrep" class="gm" aria-pressed="false" data-tip="Cacher le plateau aux joueurs pour préparer la partie (ils gardent leur fiche et leur journal)">Préparation</button>
   <button id="btnCopyPlayers" data-tip="Copier le lien à donner aux joueurs">Lien joueurs</button>
   <button id="btnCopyGM" class="gm" data-tip="Lien MJ secret, pour reprendre la main depuis un autre appareil">Lien MJ</button>
   <button id="btnFit" data-tip="Recentrer la vue (touche F)">Recentrer</button>
-  <button id="btnSheet" data-tip="Fiche de personnage (touche I)">📋 Fiche</button>
-  <button id="btnJournal" data-tip="Journal (touche J)">📔 Journal</button>
-  <button id="btnDice" data-tip="Afficher / masquer les dés (touche D)" aria-label="Afficher / masquer les dés" aria-controls="dicePanel">🎲</button>
-  <button id="btnPanel" aria-label="Afficher / masquer le panneau" aria-controls="panel">☰</button>
+  <button id="btnSheet" data-icon="sheet" data-tip="Fiche de personnage (touche I)">Fiche</button>
+  <button id="btnJournal" data-icon="journal" data-tip="Journal (touche J)">Journal</button>
+  <button id="btnRules" data-icon="rules" data-tip="Livre de règles du jeu (touche R)" hidden>Règles</button>
+  <button id="btnDice" data-tip="Afficher / masquer les dés (touche D)" aria-label="Afficher / masquer les dés" aria-controls="dicePanel" data-icon="dice"></button>
+  <button id="btnPanel" aria-label="Afficher / masquer le panneau" aria-controls="panel" data-icon="menu"></button>
   <button id="btnHelp" class="tip-right" data-tip="Aide et raccourcis clavier (touche ?)" aria-label="Aide et raccourcis clavier">?</button>
   <button id="btnHome" class="tip-right" data-tip="Retour à l'accueil">Accueil</button>
   <button id="btnLogout" class="tip-right" data-tip="Se déconnecter">Déconnexion</button>
@@ -65,15 +76,7 @@
       <button type="submit">Lancer</button>
     </form>
   </section>
-  <section>
-    <h3>Jet de pool (d10)</h3>
-    <form id="poolForm">
-      <label>Dés normaux <input id="poolNormal" type="number" min="0" max="30" value="0" step="1"></label>
-      <label data-tip="Pré-remplis depuis la jauge de Désespoir de la cellule, modifiables avant de lancer. Un 1 sur ces dés déclenche Overreach (test réussi, Danger augmente) ou Despair (test raté) — un 1 sur les dés normaux ne compte pas.">Dés Désespoir <input id="poolHunger" type="number" min="0" max="10" value="0" step="1"></label>
-      <label data-tip="Nombre de réussites nécessaires pour réussir le test. Chaque d10 de 6 à 10 compte comme une réussite, et chaque paire de 10 en rapporte 2 de plus (critique).">Difficulté <input id="poolDifficulty" type="number" min="1" max="20" value="3" step="1"></label>
-      <button type="submit" class="big">Lancer</button>
-    </form>
-  </section>
+  <div id="gameChecks"></div>
   <section>
     <h3>Historique</h3>
     <ul id="diceLog" class="plain"></ul>
@@ -174,23 +177,7 @@
         <span class="stat-track-label">Visible malgré tout à</span>
         <ul id="npcVisibilityList" class="plain"></ul>
       </div>
-      <div class="sheet-row3">
-        <label>PV <input id="npcHp" type="number" min="0" max="999" step="1"></label>
-        <label>PV max <input id="npcHpMax" type="number" min="1" max="999" step="1"></label>
-      </div>
-      <div class="box-grid" id="npcHpBoxes"></div>
-      <div class="sheet-row3">
-        <label>Volonté <input id="npcWillpower" type="number" min="0" max="20" step="1"></label>
-        <label>Volonté max <input id="npcWillpowerMax" type="number" min="1" max="20" step="1"></label>
-        <label data-tip="À toi de décider ce qu'elle représente : difficulté pour toucher ce PNJ, défense passive…">Défense <input id="npcDefense" type="number" min="0" max="20" step="1"></label>
-      </div>
-      <div class="box-grid" id="npcWillpowerBoxes"></div>
-      <label>Traits (attaques, résistances…)
-        <textarea id="npcTraits" rows="3" maxlength="500"></textarea>
-      </label>
-      <label>Notes
-        <textarea id="npcNotes" rows="3" maxlength="500"></textarea>
-      </label>
+      <div id="npcFields"></div>
     </div>
   </section>
 
@@ -206,20 +193,7 @@
 
   <section id="secCharacter" class="player-only">
     <h3>Personnage</h3>
-    <div>
-      <div class="stat-track">
-        <span class="stat-track-label">PV</span>
-        <div class="box-grid dmg-grid tip-left" id="hpBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
-      </div>
-      <div class="stat-track">
-        <span class="stat-track-label">Volonté</span>
-        <div class="box-grid dmg-grid tip-left" id="willpowerBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
-      </div>
-      <div class="stat-track">
-        <span class="stat-track-label" id="hungerBoxesMiniLabel">Faim</span>
-        <div class="box-grid" id="hungerBoxesMini"></div>
-      </div>
-    </div>
+    <div id="quickStats"></div>
   </section>
 
   <section class="gm" id="secBanned" hidden>
@@ -233,12 +207,12 @@
     <ol id="initiativeList" class="plain"></ol>
     <div class="row">
       <select id="initTokenSelect"></select>
-      <input id="initScoreInput" type="number" value="0" step="1" style="width:60px" data-tip="Score exact (bouton +) ou modificateur ajouté au d10 (bouton 🎲)">
+      <input id="initScoreInput" type="number" value="0" step="1" style="width:60px" data-tip="Score exact (bouton +) ou modificateur ajouté au d10 (bouton dé)">
       <button id="initAdd" type="button" class="tip-right" data-tip="Ajoute avec le score exact saisi">+</button>
-      <button id="initAddRoll" type="button" class="tip-right" data-tip="Lance 1d10 + le modificateur saisi">🎲</button>
+      <button id="initAddRoll" type="button" class="tip-right" data-tip="Lance 1d10 + le modificateur saisi" aria-label="Lancer l'initiative" data-icon="dice"></button>
     </div>
     <div class="row">
-      <button id="initNext" type="button">Tour suivant ▶</button>
+      <button id="initNext" type="button">Tour suivant <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3l14 9-14 9z"/></svg></button>
       <button id="initClear" type="button">Terminer la scène</button>
     </div>
   </section>
@@ -297,95 +271,61 @@
         <select id="sheetPlayerSelect"></select>
       </label>
       <span class="spacer"></span>
-      <button id="btnSheetClose" aria-label="Fermer la fiche">✕</button>
+      <button id="btnSheetClose" aria-label="Fermer la fiche" data-icon="close"></button>
     </header>
 
-    <details class="sheet-help">
-      <summary>Aide à la création (répartition des points par priorité)</summary>
-      <div class="sheet-help-tables">
-        <table>
-          <caption>Attributs (priorités 4 / 3 / 2 / 1 points, un point offert par attribut)</caption>
-          <thead><tr><th>4 pts</th><th>3 pts</th><th>2 pts</th><th>1 pt</th></tr></thead>
-          <tbody><tr><td>×1</td><td>×3</td><td>×4</td><td>×1</td></tr></tbody>
-        </table>
-        <table>
-          <caption>Compétences (priorités 3 / 2 / 1 points)</caption>
-          <thead><tr><th>Profil</th><th>3 pts</th><th>2 pts</th><th>1 pt</th></tr></thead>
-          <tbody>
-            <tr><td>Touche à tout</td><td>×1</td><td>×8</td><td>×10</td></tr>
-            <tr><td>Équilibré</td><td>×3</td><td>×5</td><td>×7</td></tr>
-            <tr><td>Spécialiste (4 pts ×1 en plus)</td><td>×3</td><td>×3</td><td>×3</td></tr>
-          </tbody>
-        </table>
+    <div id="sheetPortrait" class="sheet-portrait" hidden>
+      <img id="sheetPortraitImg" class="sheet-portrait-img" alt="" hidden>
+      <canvas id="sheetTokenPreview" class="token-preview" width="160" height="160" role="img" aria-label="Aperçu du jeton sur la carte"></canvas>
+      <div class="sheet-portrait-actions">
+        <p id="sheetPortraitHint" class="hint">Ajoute une image du personnage, puis choisis la partie qui remplit son jeton sur la carte.</p>
+        <div class="row">
+          <button id="sheetPortraitPick" type="button">Choisir une image…</button>
+          <button id="sheetPortraitCrop" type="button" hidden>Cadrer le jeton…</button>
+          <button id="sheetPortraitRemove" type="button" class="danger" hidden>Retirer l'image</button>
+        </div>
       </div>
-    </details>
+      <input id="sheetPortraitFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    </div>
 
-    <div class="sheet-body">
-      <section>
-        <div class="sheet-row3">
-          <label>Concept <input id="sheetConcept" maxlength="60"></label>
-          <label>Vertu <input id="sheetVirtue" maxlength="40"></label>
-          <label>Vice <input id="sheetVice" maxlength="40"></label>
-        </div>
-        <div class="sheet-row3">
-          <label>Santé (cases) <input id="sheetHealthMax" type="number" min="0" max="20" step="1"></label>
-          <label>Volonté (cases) <input id="sheetWillpowerMax" type="number" min="0" max="20" step="1"></label>
-        </div>
-        <div class="stat-track">
-          <span class="stat-track-label">Santé</span>
-          <div class="box-grid dmg-grid tip-left" id="sheetHealthBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
-        </div>
-        <div class="stat-track">
-          <span class="stat-track-label">Volonté</span>
-          <div class="box-grid dmg-grid tip-left" id="sheetWillpowerBoxes" data-tip="Clique sur une case pour la faire passer de vide à dégât superficiel (jaune), puis aggravé (rouge), puis de nouveau vide."></div>
-        </div>
-        <p class="hint">Clique une case pour la faire passer de vide à superficiel puis aggravé.</p>
-      </section>
+    <details class="sheet-help" id="sheetHelp" hidden></details>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
 
-      <section>
-        <div class="sheet-row3">
-          <label>Libellé <input id="sheetHungerLabel" maxlength="30" placeholder="Faim"></label>
-          <label>Valeur <input id="sheetHunger" type="number" min="0" max="10" step="1"></label>
-          <label>Max <input id="sheetHungerMax" type="number" min="1" max="10" step="1"></label>
-        </div>
-        <div class="stat-track">
-          <span class="stat-track-label" id="hungerBoxesLabel">Faim</span>
-          <div class="box-grid" id="hungerBoxes"></div>
-        </div>
-        <div class="sheet-row3">
-          <label>Libellé <input id="sheetMoralityLabel" maxlength="30" placeholder="Humanité"></label>
-          <label>Valeur <input id="sheetMorality" type="number" min="0" max="10" step="1"></label>
-          <label>Max <input id="sheetMoralityMax" type="number" min="1" max="10" step="1"></label>
-        </div>
-        <div class="stat-track">
-          <span class="stat-track-label" id="moralityBoxesLabel">Humanité</span>
-          <div class="box-grid" id="moralityBoxes"></div>
-        </div>
-      </section>
-
-      <section>
-        <h3>Attributs</h3>
-        <div id="sheetAttributes" class="sheet-attr-grid"></div>
-      </section>
-
-      <section>
-        <h3>Compétences</h3>
-        <div id="sheetSkills" class="sheet-skill-grid"></div>
-      </section>
-
-      <section>
-        <h3>Mérites</h3>
-        <textarea id="sheetMerits" rows="3" maxlength="500" placeholder="Mérites, dons, atouts…"></textarea>
-      </section>
-      <section>
-        <h3 id="sheetPowersLegend">Disciplines / Dons / Atouts</h3>
-        <label>Libellé <input id="sheetPowersLabel" maxlength="40" placeholder="Disciplines / Dons / Atouts"></label>
-        <textarea id="sheetPowers" rows="4" maxlength="1000" placeholder="Disciplines, Dons de chasseur, Edges… (nom, niveau, description libre)"></textarea>
-      </section>
-      <section>
-        <h3>Notes</h3>
-        <textarea id="sheetNotes" rows="5" maxlength="2000" placeholder="Historique, contacts, matériel, mécaniques propres au type de personnage…"></textarea>
-      </section>
+<div id="rulesPanel" class="overlay" hidden>
+  <div class="overlay-card sheet-card rules-card">
+    <header class="sheet-head">
+      <h2 id="rulesTitle">Règles</h2>
+      <span class="spacer"></span>
+      <a id="rulesNewTab" class="button-link" target="_blank" rel="noopener">Ouvrir dans un onglet</a>
+      <button id="btnRulesClose" aria-label="Fermer les règles" data-icon="close"></button>
+    </header>
+    <div class="rules-toolbar" role="toolbar" aria-label="Lecture des règles">
+      <button id="rulesTocBtn" type="button" data-icon="menu" aria-label="Sommaire" data-tip="Sommaire" class="tip-left"></button>
+      <span class="rules-group">
+        <button id="rulesPrev" type="button" aria-label="Page précédente">‹</button>
+        <input id="rulesPage" type="number" min="1" value="1" aria-label="Page">
+        <span id="rulesPages" class="rules-muted">/ …</span>
+        <button id="rulesNext" type="button" aria-label="Page suivante">›</button>
+      </span>
+      <span class="rules-group">
+        <button id="rulesZoomOut" type="button" aria-label="Dézoomer">−</button>
+        <span id="rulesZoom" class="rules-muted">100 %</span>
+        <button id="rulesZoomIn" type="button" aria-label="Zoomer">+</button>
+        <button id="rulesFit" type="button">Largeur</button>
+      </span>
+      <form id="rulesFindForm" class="rules-group rules-find" role="search">
+        <input id="rulesQuery" type="search" placeholder="Rechercher dans les règles…" aria-label="Rechercher dans les règles">
+        <button id="rulesFindPrev" type="button" aria-label="Résultat précédent">‹</button>
+        <button type="submit" aria-label="Résultat suivant">›</button>
+        <span id="rulesFindInfo" class="rules-muted" aria-live="polite"></span>
+      </form>
+    </div>
+    <div class="rules-body">
+      <nav id="rulesOutline" class="rules-outline" aria-label="Sommaire du livre"></nav>
+      <div id="rulesViewerContainer" class="rules-viewer" tabindex="0"><div id="rulesViewer" class="pdfViewer"></div></div>
+      <div id="rulesStatus" class="rules-status" hidden></div>
     </div>
   </div>
 </div>
@@ -398,7 +338,7 @@
         <select id="journalPlayerSelect"></select>
       </label>
       <span class="spacer"></span>
-      <button id="btnJournalClose" aria-label="Fermer le journal">✕</button>
+      <button id="btnJournalClose" aria-label="Fermer le journal" data-icon="close"></button>
     </header>
     <div class="journal-pages">
       <div id="journalViewport" class="journal-viewport">
@@ -419,7 +359,7 @@
 
 <div id="npcProfilePanel" class="overlay" hidden>
   <div class="overlay-card npc-profile-card" role="dialog" aria-modal="true" aria-labelledby="npcProfileName">
-    <button id="btnNpcProfileClose" class="npc-profile-close" aria-label="Fermer la présentation">✕</button>
+    <button id="btnNpcProfileClose" class="npc-profile-close" aria-label="Fermer la présentation" data-icon="close"></button>
     <div id="npcProfilePortrait" class="npc-profile-portrait"><img id="npcProfileImg" alt=""></div>
     <div class="npc-profile-body">
       <h2 id="npcProfileName"></h2>
@@ -433,7 +373,7 @@
     <header class="sheet-head">
       <h2>Renommer le salon</h2>
       <span class="spacer"></span>
-      <button id="btnRenameClose" aria-label="Fermer">✕</button>
+      <button id="btnRenameClose" aria-label="Fermer" data-icon="close"></button>
     </header>
     <form id="renameForm">
       <label>Nom du salon
@@ -453,6 +393,24 @@
 <div id="rollBanner"></div>
 <div id="srLive" class="sr-only" aria-live="polite"></div>
 
+<dialog id="cropDialog" class="confirm-dialog crop-dialog" aria-labelledby="cropTitle">
+  <div class="confirm-card">
+    <h2 id="cropTitle">Cadrer le jeton</h2>
+    <p class="hint">Fais glisser le cercle sur la partie de l'image à montrer dans le jeton. Molette ou curseur : taille du cercle.</p>
+    <div class="crop-layout">
+      <canvas id="cropCanvas" class="crop-canvas" aria-label="Image à cadrer"></canvas>
+      <div class="crop-side">
+        <canvas id="cropPreview" class="token-preview" width="160" height="160" role="img" aria-label="Aperçu du jeton"></canvas>
+        <label>Taille <input id="cropSize" type="range" min="5" max="100" step="1" value="100"></label>
+      </div>
+    </div>
+    <div class="row confirm-actions">
+      <button type="button" id="cropCancel">Annuler</button>
+      <button type="button" id="cropSave" class="primary">Valider</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="helpDialog" class="confirm-dialog help-dialog" aria-labelledby="helpTitle">
   <div class="confirm-card">
     <h2 id="helpTitle">Aide et raccourcis</h2>
@@ -463,6 +421,7 @@
       <dt><kbd>D</kbd></dt><dd>Afficher / masquer les dés</dd>
       <dt><kbd>I</kbd></dt><dd>Fiche de personnage</dd>
       <dt><kbd>J</kbd></dt><dd>Journal</dd>
+      <dt><kbd>R</kbd></dt><dd>Livre de règles (si disponible)</dd>
       <dt><kbd>Échap</kbd></dt><dd>Désélectionner, fermer un panneau ou une infobulle</dd>
       <dt class="gm"><kbd>Suppr</kbd></dt><dd class="gm">Supprimer le jeton sélectionné</dd>
     </dl>
@@ -488,6 +447,7 @@
 </dialog>
 
 <script src="/js/dialog.js"></script>
+<script src="/js/icons.js"></script>
 <script src="/js/state.js"></script>
 <script src="/js/network.js"></script>
 <script src="/js/viewport.js"></script>
@@ -497,11 +457,15 @@
 <script src="/js/danger.js"></script>
 <script src="/js/initiative.js"></script>
 <script src="/js/npc.js"></script>
+<script src="/js/portrait.js"></script>
 <script src="/js/npc-profile.js"></script>
 <script src="/js/dice-ui.js"></script>
 <script src="/js/links.js"></script>
 <script src="/js/sheet.js"></script>
 <script src="/js/journal.js"></script>
+<script src="/js/rules.js"></script>
+<script src="/js/prep.js"></script>
+<script src="/js/game.js"></script>
 <script src="/js/main.js"></script>
 </body>
 </html>

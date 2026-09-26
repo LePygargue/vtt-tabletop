@@ -1,0 +1,45 @@
+/*
+ * Sauvegarde de la DA Hunter « classique » (avant la DA « dossier de la cellule », 26/09/2026) :
+ * fond noir verdâtre, accent vert d'eau, titres Cinzel, texte EB Garamond, grain léger,
+ * jauges en losanges ◆/◇. Ce thème n'avait pas de règles propres : uniquement ces variables.
+ *
+ * Pour la rétablir dans public/style.css :
+ *   1. supprimer le bloc « Hunter: the Reckoning : « le dossier de la cellule » » (de son commentaire
+ *      jusqu'au commentaire « Pathfinder 2e : grimoire… ») — le thème par défaut (:root) en haut du
+ *      fichier contient déjà exactement ces valeurs, il suffit donc de retirer ce bloc ;
+ *   2. ou, pour la garder à côté de la nouvelle, coller le bloc ci-dessous à la place.
+ * Polices utilisées : Cinzel (600, 700) et EB Garamond, déjà chargées par les pages.
+ */
+[data-game="hunter"] {
+  --bg: #0a0d0c;
+  --panel: #12181a;
+  --panel-2: #1a2225;
+  --line: #2b3a3a;
+  --text: #d8dcd0;
+  --muted: #8a978f;
+  --accent: #4fd1a5;
+  --danger: #8a1f2b;
+  --ok: #4f8a5c;
+  --crit: #c9932f;
+  --gauge-danger: #d0404f;
+  --on-accent: #081513;
+  --danger-text: #e0a19d;
+  --ok-text: #9fd4ab;
+  --cond-text: #f0b3ad;
+  --gold: #e4d2a0;
+  --gold-line: #b8a26c;
+  --canvas-bg: #0a0d0c;
+  --canvas-fog: #0d1512;
+  --home-glow: #16221f;
+  --home-bg:
+    radial-gradient(120% 90% at 50% -10%, rgba(22, 34, 31, .55) 0%, rgba(10, 13, 12, .75) 60%),
+    url("/img/login-bg.jpg") center / cover no-repeat fixed;
+  --home-card: rgba(18, 24, 26, .82);
+  --title-glow: rgba(79, 209, 165, .25);
+  --vignette: #0a0d0cc0;
+  --rdie-front-c: #2c3d3b; --rdie-side-c: #1c2828; --rdie-low-c: #121a1a; --rdie-text: var(--text);
+  --font-display: 'Cinzel', serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}

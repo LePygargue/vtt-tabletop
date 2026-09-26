@@ -1,4 +1,6 @@
 data/
+# Livres de règles (PDF sous droits, plusieurs centaines de Mo) : à déposer dans data/rules/<jeu>.pdf
+*.pdf
 .artifact-scratch/
 
 # Fichiers de travail non liés au code (capture debug, image de référence non utilisée par l'app)

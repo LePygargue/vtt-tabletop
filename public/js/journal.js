@@ -166,4 +166,4 @@ $('btnJournal').addEventListener('click', () => {
 });
 $('btnJournalClose').addEventListener('click', () => { $('journalPanel').hidden = true; });
 closeOnEscape(() => !$('journalPanel').hidden, () => { $('journalPanel').hidden = true; });
-closeOnClickOutside($('journalPanel').querySelector('.overlay-card'), () => !$('journalPanel').hidden, () => { $('journalPanel').hidden = true; });
+closeOnClickOutside($('journalPanel').querySelector('.overlay-card'), () => !$('journalPanel').hidden, () => { $('journalPanel').hidden = true; }, $('btnJournal'));

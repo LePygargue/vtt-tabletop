@@ -31,6 +31,8 @@ function syncTopbarHeight() {
   document.documentElement.style.setProperty('--topbar-h', $('topbar').getBoundingClientRect().height + 'px');
 }
 window.addEventListener('resize', syncTopbarHeight);
+// La barre change aussi de hauteur sans redimensionnement (polices web chargées, jauges du jeu, boutons MJ)
+if (window.ResizeObserver) new ResizeObserver(syncTopbarHeight).observe($('topbar'));
 {
   let saved = null;
   try { saved = localStorage.getItem(UI_SIZE_KEY); } catch (e) { /* idem */ }

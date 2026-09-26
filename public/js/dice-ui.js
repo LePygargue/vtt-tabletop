@@ -1,6 +1,8 @@
 'use strict';
 /**
- * Dés : historique, bannières de résultat, formule libre, pools de succès (d10).
+ * Dés : historique, bannières de résultat, formule libre, et panneaux de jet
+ * propres au jeu du salon (pool de d10 Hunter, test d20 Pathfinder, d100 Cthulhu),
+ * construits depuis game.checks et résolus côté serveur.
  */
 let rollAdv = 'normal'; // normal | adv | dis
 const DIE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -9,7 +11,7 @@ function addRoll(roll) {
   if (rolls.length > 50) rolls.shift();
   renderDiceLog();
   const revealMs = showRollBanner(roll); // même bannière animée pour tous, MJ compris
-  if (roll.outcome === 'overreach') overreachRevealAt = performance.now() + revealMs;
+  if (roll.dangerDelta) overreachRevealAt = performance.now() + revealMs;
   // annoncé une fois l'animation de la bannière finie, pas face par face
   const text = `${roll.by}${roll.private ? ' (secret)' : ''} : ${roll.total}${successSuffix(roll).replace(/\s*·\s*/g, ', ')}`;
   setTimeout(() => announce(text), revealMs + 50);
@@ -112,13 +114,17 @@ const ROUND_SHAPE = (() => {
 function prefersReducedMotion() {
   return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
+/** Le jeu du salon lit les d10 comme un pool de réussites (Storytelling System) plutôt qu'une somme. */
+const poolD10 = () => !!(game && game.dice && game.dice.poolD10);
+/** Couleur du dé gardé d'un test du jeu, selon son degré de réussite. */
+const TONE_DIE_CLASS = { crit: 'crit', ok: 'ok', fail: 'fail', botch: 'fail' };
 /** Dés d'un jet, dans l'ordre du détail, avec leur couleur finale. */
 function rolledDiceOf(roll) {
   const hIdx = hungerPoolIndex(roll);
   const dice = [];
   roll.parts.forEach((p, i) => {
     if (p.type !== 'dice') return;
-    const pool = p.sides === 10 && !p.dropped.length; // pool de réussites (6+ réussit, paire de 10 critique)
+    const pool = isPoolTerm(p); // pool de réussites (6+ réussit, paire de 10 critique)
     const pairedTens = pool ? Math.floor(p.values.filter((v) => v === 10).length / 2) * 2 : 0;
     let tenSeen = 0;
     let faces = p.values.map((v, idx) => ({ v, dropped: p.dropped.includes(idx) }));
@@ -126,6 +132,7 @@ function rolledDiceOf(roll) {
     faces.forEach(({ v, dropped }) => {
       let cls;
       if (pool) cls = v === 10 ? (++tenSeen <= pairedTens ? 'crit' : 'ok') : d10Class(v);
+      else if (roll.tone && !dropped) cls = TONE_DIE_CLASS[roll.tone] || 'plain';
       else cls = v === p.sides ? 'max' : v === 1 ? 'min' : 'plain';
       dice.push({ value: v, sides: p.sides, cls, hunger: i === hIdx, dropped });
     });
@@ -250,7 +257,16 @@ function showRollBanner(roll) {
     }
     result.textContent = '';
     appendRollDetail(result, roll);
-    if (rollHasCrit(roll)) {
+    if (roll.tierLabel) {
+      // test propre au jeu : le degré de réussite calculé par le serveur
+      const tone = roll.tone || 'ok';
+      if (tone === 'crit' || tone === 'botch') wrap.classList.add(tone);
+      if (tone === 'crit' && spin) face.classList.add('crit-land');
+      const badge = document.createElement('div');
+      badge.className = 'rb-crit-badge rb-tone-' + tone;
+      badge.textContent = (TONE_ICONS[tone] || '') + roll.tierLabel;
+      info.appendChild(badge);
+    } else if (rollHasCrit(roll)) {
       wrap.classList.add('crit');
       if (spin) face.classList.add('crit-land');
       const badge = document.createElement('div');
@@ -285,11 +301,16 @@ function showRollBanner(roll) {
   }, revealMs + 8750);
   return revealMs;
 }
+const TONE_ICONS = { crit: '✨ ', ok: '✔ ', fail: '✘ ', botch: '💀 ' };
 /** d10 hors valeur 10 : 6-9 = réussite (vert), sinon échec (rouge). */
 function d10Class(v) { return v >= 6 ? 'ok' : 'fail'; }
 /** Vrai si le jet contient au moins une paire de 10 sur un terme en d10. */
 function rollHasCrit(r) {
-  return r.parts.some((p) => p.type === 'dice' && p.sides === 10 && !p.dropped.length && p.values.filter((v) => v === 10).length >= 2);
+  return r.parts.some((p) => isPoolTerm(p) && p.values.filter((v) => v === 10).length >= 2);
+}
+/** Terme lu comme un pool de réussites : d10 non tronqué (kh/kl), dans un jeu à pool de d10. */
+function isPoolTerm(p) {
+  return poolD10() && p.type === 'dice' && p.sides === 10 && !p.dropped.length;
 }
 /** Nombre de réussites d'un pool de d10 : +1 par dé entre 6 et 10 inclus, +2 par paire de 10. */
 function d10Successes(values) {
@@ -302,7 +323,7 @@ function computeRollSuccesses(r) {
   let found = false;
   let total = 0;
   r.parts.forEach((p) => {
-    if (p.type !== 'dice' || p.sides !== 10 || p.dropped.length) return;
+    if (!isPoolTerm(p)) return;
     found = true;
     total += d10Successes(p.values);
   });
@@ -312,16 +333,20 @@ function computeRollSuccesses(r) {
 function computeRollBotch(r) {
   const succ = computeRollSuccesses(r);
   if (succ == null || succ > 0) return false;
-  return r.parts.some((p) => p.type === 'dice' && p.sides === 10 && !p.dropped.length && p.values.includes(1));
+  return r.parts.some((p) => isPoolTerm(p) && p.values.includes(1));
 }
 /** Indices des termes en d10 purs (non tronqués par kh/kl) d'un jet. */
 function pureD10Indices(r) {
   const idx = [];
-  r.parts.forEach((p, i) => { if (p.type === 'dice' && p.sides === 10 && !p.dropped.length) idx.push(i); });
+  r.parts.forEach((p, i) => { if (isPoolTerm(p)) idx.push(i); });
   return idx;
 }
-/** Convention client (et serveur pour Overreach/Despair) : dans un jet à deux termes d10 purs, le second est le pool Désespoir/Danger. */
+/**
+ * Terme des dés Désespoir : indiqué par le serveur pour un jet de pool, sinon convention
+ * pour les formules libres (dans un jet à deux termes d10 purs, le second).
+ */
 function hungerPoolIndex(r) {
+  if (r.hungerIndex != null) return r.hungerIndex;
   const idx = pureD10Indices(r);
   return idx.length === 2 ? idx[1] : -1;
 }
@@ -342,7 +367,7 @@ function buildTermNode(p, i, isHunger) {
     return wrap;
   }
   const sign = p.sign < 0 ? '-' : i ? '+' : '';
-  if (p.sides === 10 && !p.dropped.length) {
+  if (isPoolTerm(p)) {
     const tens = p.values.filter((v) => v === 10).length;
     const pairedTens = Math.floor(tens / 2) * 2; // seuls les 10 appariés (par deux) sont critiques
     let tenSeen = 0;
@@ -381,6 +406,7 @@ function buildDiceFragment(r) {
   return frag;
 }
 function successSuffix(r) {
+  if (r.tierLabel) return `  ·  ${r.targetLabel} ${r.target}  ·  ${r.tierLabel}`;
   if (r.difficulty != null) {
     let s = `  ·  ${r.successes}${r.successes === 1 ? ' réussite' : ' réussites'} / difficulté ${r.difficulty}  ·  ${r.passed ? 'RÉUSSI' : 'RATÉ'}`;
     if (r.outcome === 'overreach') s += `  ·  ⚡ Overreach (Danger +${r.dangerDelta})`;
@@ -416,20 +442,18 @@ function renderDiceLog() {
     detail.appendChild(buildDiceFragment(r));
     const hIdx = hungerPoolIndex(r);
     detail.appendChild(document.createTextNode(successSuffix(r) + (hIdx >= 0 ? hungerNote(r.parts[hIdx]) : '')));
-    if (r.outcome === 'despair' || (r.difficulty == null && computeRollBotch(r))) li.classList.add('botch');
-    if (r.outcome === 'overreach') li.classList.add('overreach');
+    if (r.outcome === 'despair' || r.tone === 'botch' || (r.difficulty == null && computeRollBotch(r))) li.classList.add('botch');
+    if (r.outcome === 'overreach' || r.tone === 'crit') li.classList.add('overreach');
     head.append(who, total);
     li.append(head, detail);
     ul.appendChild(li);
   }
   ul.scrollTop = ul.scrollHeight;
 }
-function sendRoll(expr, opts = {}) {
+function sendRoll(expr) {
   expr = String(expr || '').trim();
   if (!expr) return;
-  const msg = { t: 'roll', expr, private: $('rollSecret').checked };
-  if (opts.difficulty != null) msg.difficulty = opts.difficulty;
-  send(msg);
+  send({ t: 'roll', expr, private: $('rollSecret').checked });
 }
 function quickRoll(sides) {
   const count = Math.min(100, Math.max(1, parseInt($('rollCount').value, 10) || 1));
@@ -455,19 +479,49 @@ $('rollForm').addEventListener('submit', (e) => {
   sendRoll($('rollFormula').value);
   $('rollFormula').value = '';
 });
-$('poolForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const normal = Math.max(0, parseInt($('poolNormal').value, 10) || 0);
-  const hunger = Math.max(0, parseInt($('poolHunger').value, 10) || 0);
-  if (!normal && !hunger) return;
-  const terms = [];
-  if (normal) terms.push(`${normal}d10`);
-  if (hunger) terms.push(`${hunger}d10`);
-  const difficulty = clampDifficulty(parseInt($('poolDifficulty').value, 10));
-  sendRoll(terms.join('+'), { difficulty });
-});
-function clampDifficulty(v) {
-  return Math.min(20, Math.max(1, Number.isFinite(v) ? v : 3));
+
+/** Panneaux de jet du jeu (game.checks) : un formulaire par test, résolu par le serveur. */
+function buildCheckForms() {
+  const root = $('gameChecks');
+  root.textContent = '';
+  for (const check of game.checks) {
+    const section = root.appendChild(el('section'));
+    section.appendChild(el('h3', null, check.title));
+    const form = section.appendChild(el('form', 'check-form'));
+    const inputs = {};
+    for (const f of check.fields) {
+      let input;
+      if (f.type === 'select') {
+        input = el('select');
+        for (const [value, label] of f.options) {
+          const opt = input.appendChild(el('option', null, label));
+          opt.value = value;
+        }
+      } else {
+        input = el('input');
+        input.type = 'number';
+        input.min = f.min;
+        input.max = f.max;
+        input.step = 1;
+      }
+      input.value = f.default;
+      if (f.prefillGauge) input.dataset.prefillGauge = f.prefillGauge;
+      inputs[f.key] = input;
+      const label = form.appendChild(el('label', null, f.label + ' '));
+      if (f.tip) label.dataset.tip = f.tip;
+      label.appendChild(input);
+    }
+    const submit = form.appendChild(el('button', 'big', 'Lancer'));
+    submit.type = 'submit';
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const msg = { id: check.id };
+      for (const f of check.fields) msg[f.key] = f.type === 'select' ? inputs[f.key].value : intOr(inputs[f.key].value, f.default);
+      send({ t: 'roll', check: msg, private: $('rollSecret').checked });
+    });
+    makeSectionCollapsible(section.firstChild);
+  }
+  renderGauges(); // pré-remplissage des champs liés à une jauge
 }
 $('btnDice').addEventListener('click', () => document.body.classList.toggle('dice-closed'));
 closeOnEscape(() => !document.body.classList.contains('dice-closed'), () => document.body.classList.add('dice-closed'));

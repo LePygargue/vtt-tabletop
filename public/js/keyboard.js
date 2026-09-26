@@ -66,6 +66,7 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('dice-closed');
   else if (e.key === 'i' || e.key === 'I') $('btnSheet').click();
   else if (e.key === 'j' || e.key === 'J') $('btnJournal').click();
+  else if ((e.key === 'r' || e.key === 'R') && !$('btnRules').hidden) $('btnRules').click();
   else if (e.key === 'Escape') { selectedId = null; refreshUI(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && isGM() && selectedId) deleteSelected();
 });

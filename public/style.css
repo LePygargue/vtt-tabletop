@@ -1,4 +1,4 @@
-:root {
+:root, [data-game="hunter"] {
   --bg: #0a0d0c;
   --panel: #12181a;
   --panel-2: #1a2225;
@@ -9,6 +9,23 @@
   --danger: #8a1f2b;
   --ok: #4f8a5c;
   --crit: #c9932f;
+  --gauge-danger: #d0404f;
+  --on-accent: #081513;
+  --danger-text: #e0a19d;
+  --ok-text: #9fd4ab;
+  --cond-text: #f0b3ad;
+  --gold: #e4d2a0;
+  --gold-line: #b8a26c;
+  --canvas-bg: #0a0d0c;
+  --canvas-fog: #0d1512;
+  --home-glow: #16221f;
+  --home-bg:
+    radial-gradient(120% 90% at 50% -10%, rgba(22, 34, 31, .55) 0%, rgba(10, 13, 12, .75) 60%),
+    url("/img/login-bg.jpg") center / cover no-repeat fixed;
+  --home-card: rgba(18, 24, 26, .82);
+  --title-glow: rgba(79, 209, 165, .25);
+  --vignette: #0a0d0cc0;
+  --rdie-front-c: #2c3d3b; --rdie-side-c: #1c2828; --rdie-low-c: #121a1a; --rdie-text: var(--text);
   --font-display: 'Cinzel', serif;
   --font-body: 'EB Garamond', Georgia, serif;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
@@ -31,28 +48,36 @@ button, input, select {
   padding: 6px 10px;
 }
 button { cursor: pointer; }
+/* Icônes au trait (js/icons.js), couleur d'accent du jeu ; celles des boutons « danger » suivent le texte */
+.icon {
+  width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em;
+  fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+button:has(> .icon) { display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
+[hidden] { display: none !important; } /* les règles d'affichage ci-dessus ne doivent pas faire réapparaître un élément caché */
+button.danger .icon, .draw-btn.danger .icon { stroke: currentColor; }
+button.primary .icon, .seg button.on .icon { stroke: var(--on-accent); }
+.icon-btn { line-height: 1; }
+#topbar .icon-btn { min-width: 2.4em; align-self: stretch; }
+.badge.npc-info .icon { stroke: var(--gold); width: 1em; height: 1em; }
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #081513; font-weight: 600; }
-button.danger { border-color: var(--danger); color: #e0a19d; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button.danger { border-color: var(--danger); color: var(--danger-text); }
 input[type="color"] { padding: 2px; height: 32px; width: 48px; }
 input[type="checkbox"] { width: auto; }
 .plain { list-style: none; margin: 0; padding: 0; }
 .hint { color: var(--muted); font-size: 16px; margin: 6px 0 0; }
-.error { color: #e0a19d; min-height: 1.4em; }
+.error { color: var(--danger-text); min-height: 1.4em; }
 .row { display: flex; gap: 8px; }
 .row > input { flex: 1; min-width: 0; }
 
 /* ---------- Accueil ---------- */
 body.home {
   display: grid; place-items: center; padding: 16px;
-  background: radial-gradient(120% 90% at 50% -10%, #16221f 0%, var(--bg) 60%);
+  background: radial-gradient(120% 90% at 50% -10%, var(--home-glow) 0%, var(--bg) 60%);
 }
-body.login, body.lobby {
-  background:
-    radial-gradient(120% 90% at 50% -10%, rgba(22, 34, 31, .55) 0%, rgba(10, 13, 12, .75) 60%),
-    url("/img/login-bg.jpg") center / cover no-repeat fixed;
-}
+body.login, body.lobby { background: var(--home-bg); background-color: var(--bg); }
 .home-card {
   width: min(520px, 100%);
   background: var(--panel);
@@ -62,19 +87,20 @@ body.login, body.lobby {
   padding: 28px;
 }
 body.login .home-card, body.lobby .home-card {
-  background: rgba(18, 24, 26, .82);
+  background: var(--home-card);
   backdrop-filter: blur(2px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
 }
 .home-card h1 {
   margin: 0 0 8px; font-weight: 700; font-size: 30px;
-  text-shadow: 0 0 20px rgba(79, 209, 165, .25);
+  text-shadow: 0 0 20px var(--title-glow);
 }
 .home-card h2 { font-size: 17px; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .lead { color: var(--muted); margin: 0 0 20px; font-style: italic; }
 .big { width: 100%; padding: 12px; font-size: 18px; }
 .sep { display: flex; align-items: center; gap: 12px; color: var(--muted); margin: 18px 0; }
 .sep::before, .sep::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+#mineList { max-height: min(30vh, 340px); overflow-y: auto; padding-right: 4px; }
 #mineList li { padding: 4px 0; display: flex; align-items: center; gap: 8px; }
 #mineList a { color: var(--accent); font-family: ui-monospace, monospace; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #mineList button { padding: 2px 8px; font-size: 16px; }
@@ -87,7 +113,7 @@ body.room { overflow: hidden; overscroll-behavior: none; touch-action: none; }
 #stage { position: fixed; inset: 0; }
 #stage::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(120% 120% at 50% 50%, transparent 55%, #0a0d0cc0 100%);
+  background: radial-gradient(120% 120% at 50% 50%, transparent 55%, var(--vignette) 100%);
 }
 .viewport-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: default; }
 #topbar {
@@ -153,9 +179,11 @@ body.room { overflow: hidden; overscroll-behavior: none; touch-action: none; }
 [data-tip].tip-right.tip-open::after { transform: translateY(0); }
 .badge { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 15px; }
 .badge.muted { color: var(--muted); }
-.badge.ok { color: #9fd4ab; }
-.badge.bad { color: #e0a19d; }
+.badge.ok { color: var(--ok-text); }
+.badge.bad { color: var(--danger-text); }
 
+.gauges { display: flex; align-items: center; gap: 8px; }
+.gauges[hidden], .topbar-sep:has(+ .gauges[hidden]) { display: none; }
 .danger-wrap { display: flex; align-items: center; gap: 5px; }
 .danger-label { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .danger-meter { display: flex; align-items: center; gap: 2px; }
@@ -164,17 +192,14 @@ body.room { overflow: hidden; overscroll-behavior: none; touch-action: none; }
   font-size: 17px; line-height: 1; color: var(--line);
 }
 button.dpip { cursor: pointer; }
-.dpip.danger.on { color: var(--danger); }
-button.dpip.danger:hover { color: #e0a19d; }
-.dpip.desperation.on { color: var(--crit); }
-button.dpip.desperation:hover { color: #e0c88f; }
+.dpip.on { color: var(--gc, var(--danger)); }
+button.dpip:hover { color: var(--gc, var(--danger)); filter: brightness(1.35); }
 
 /* ---------- Hausse de Danger / Désespoir (js/danger.js) ---------- */
 /* Perf : seules opacity et transform sont animées (le GPU les compose sans repeindre) ;
    les halos sont des calques à ombre fixe dont on fait varier l'opacité. */
 .danger-wrap { border-radius: 999px; padding: 2px 6px; margin: -2px -6px; }
-#dangerWrap { --ga: #d0404f; }
-#desperationWrap { --ga: var(--crit); }
+.danger-wrap { --ga: var(--gc, var(--gauge-danger)); }
 /* .danger-wrap porte déjà ::before/::after pour son infobulle : le halo va sur la jauge */
 .danger-meter { position: relative; isolation: isolate; }
 .danger-meter::before {
@@ -195,8 +220,7 @@ button.dpip.desperation:hover { color: #e0c88f; }
   opacity: 0; pointer-events: none;
   animation: gauge-pip-drain .6s cubic-bezier(.5, 0, .75, 0) calc(var(--k, 0) * .15s) backwards;
 }
-.dpip.danger.pip-lost::before { color: var(--danger); }
-.dpip.desperation.pip-lost::before { color: var(--crit); }
+.dpip.pip-lost::before { color: var(--gc, var(--danger)); }
 .ga-pip.lost::before { color: var(--ga); animation-delay: calc(.35s + var(--k, 0) * .18s); }
 @keyframes gauge-pip-drain {
   0% { opacity: 1; transform: scale(1) rotate(0); }
@@ -205,8 +229,7 @@ button.dpip.desperation:hover { color: #e0c88f; }
 }
 
 #gaugeFlash { position: fixed; inset: 0; pointer-events: none; z-index: 7; opacity: 0; will-change: opacity; }
-#gaugeFlash.danger { --ga: #d0404f; }
-#gaugeFlash.desperation { --ga: var(--crit); }
+#gaugeFlash { --ga: var(--gc, var(--gauge-danger)); }
 #gaugeFlash.go {
   background: radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--ga) 45%, transparent) 100%);
   animation: gauge-vignette 1.5s ease-out both;
@@ -234,7 +257,7 @@ button.dpip.desperation:hover { color: #e0c88f; }
   pointer-events: none; z-index: 8;
 }
 .gauge-alert {
-  --ga: #d0404f;
+  --ga: var(--gc, var(--gauge-danger));
   position: relative;
   display: flex; align-items: center; gap: 16px;
   max-width: 100%;
@@ -251,7 +274,6 @@ button.dpip.desperation:hover { color: #e0c88f; }
   opacity: 0;
   animation: gauge-fade-pulse 1.2s ease-in-out .5s 2;
 }
-.gauge-alert.desperation { --ga: var(--crit); }
 .gauge-alert.danger { animation: gauge-in .5s cubic-bezier(.2, 1.4, .4, 1) both, gauge-shake .45s ease .45s; }
 .gauge-alert.maxed { animation: gauge-in .5s cubic-bezier(.2, 1.4, .4, 1) both, gauge-shake .6s ease .45s 2; }
 .gauge-alert.maxed::before { animation: gauge-fade-pulse .8s ease-in-out .5s 4; }
@@ -305,7 +327,7 @@ button.dpip.desperation:hover { color: #e0c88f; }
 
 #panel {
   position: fixed; top: calc(var(--topbar-h, 52px) + 8px); right: 8px; bottom: 8px;
-  width: calc(340px * var(--ui-zoom, 1)); max-width: calc(100vw - 16px);
+  width: calc(var(--panel-w, 340px) * var(--ui-zoom, 1)); max-width: calc(100vw - 16px);
   overflow-y: auto; overflow-x: hidden;
   background: var(--panel);
   background-image: var(--grain);
@@ -327,7 +349,7 @@ body.panel-closed #panel { transform: translateX(calc(100% + 16px)); }
 .seg button { flex: 1; border-radius: 0; margin-left: -1px; }
 .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
 .seg button:last-child { border-radius: 0 6px 6px 0; }
-.seg button.on { background: var(--accent); border-color: var(--accent); color: #0b1020; font-weight: 600; }
+.seg button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 #fogTools.off { opacity: .45; pointer-events: none; }
 /* Normal / Avantage / Désavantage : largeur selon le texte, sinon « Désavantage » déborde du panneau */
 #dicePanel .seg button { flex: 1 1 auto; min-width: 0; padding: 6px 8px; font-size: 18px; }
@@ -335,7 +357,7 @@ body.panel-closed #panel { transform: translateX(calc(100% + 16px)); }
 /* Collée à droite du panneau des dés quand il est ouvert, dans le coin quand il est fermé. */
 #drawBar {
   position: fixed; top: calc(var(--topbar-h, 52px) + 8px);
-  left: calc(350px * var(--ui-zoom, 1) + 16px);
+  left: calc(var(--dice-w, 350px) * var(--ui-zoom, 1) + 16px);
   z-index: 4;
   display: flex; flex-direction: column; gap: 4px;
   padding: 5px;
@@ -361,10 +383,10 @@ body.draw-collapsed #drawBarBody { display: none; }
   width: 22px; height: 22px;
   fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
-.draw-btn.on { background: var(--accent); border-color: var(--accent); color: #081513; }
+.draw-btn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .draw-bar-toggle { color: var(--accent); }
 body.draw-collapsed .draw-bar-toggle { color: var(--text); }
-.draw-btn.danger { color: #e0a19d; }
+.draw-btn.danger { color: var(--danger-text); }
 .draw-btn.danger:hover { border-color: var(--danger); }
 .draw-color input[type="color"] {
   width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
@@ -401,7 +423,7 @@ body.draw-collapsed .draw-bar-toggle { color: var(--text); }
 #tokenList .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff8; flex: none; }
 #tokenList .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #tokenList .st { font-size: 15px; color: var(--muted); }
-#tokenList .on { color: #9fd4ab; }
+#tokenList .on { color: var(--ok-text); }
 #tokenList li.hid .nm { opacity: .6; font-style: italic; }
 
 #imageList li {
@@ -425,12 +447,12 @@ body:not(.is-gm) .gm { display: none !important; }
 body.is-gm .player-only { display: none !important; }
 
 /* Conditions (jetons) */
-.badge.cond { background: #8a1f2b55; border-color: var(--danger); color: #f0b3ad; font-size: 14px; }
+.badge.cond { background: color-mix(in srgb, var(--danger) 33%, transparent); border-color: var(--danger); color: var(--cond-text); font-size: 14px; }
 #selConditions { margin: 10px 0; }
 #selConditionList { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 #selConditionList li {
   display: flex; align-items: center; gap: 4px;
-  background: #8a1f2b33; border: 1px solid var(--danger); border-radius: 999px;
+  background: color-mix(in srgb, var(--danger) 20%, transparent); border: 1px solid var(--danger); border-radius: 999px;
   padding: 2px 4px 2px 10px; font-size: 15px;
 }
 #selConditionList button { padding: 0 6px; font-size: 14px; border-radius: 999px; }
@@ -475,7 +497,7 @@ body.is-gm .player-only { display: none !important; }
 }
 .npc-portrait-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .npc-portrait-actions button { padding: 4px 10px; font-size: 16px; }
-.badge.npc-info { background: #e4d2a022; border-color: #b8a26c; color: #e4d2a0; font-size: 14px; }
+.badge.npc-info { background: color-mix(in srgb, var(--gold) 13%, transparent); border-color: var(--gold-line); color: var(--gold); font-size: 14px; }
 
 .npc-profile-card {
   position: relative;
@@ -483,7 +505,7 @@ body.is-gm .player-only { display: none !important; }
   width: min(880px, 100%); max-height: var(--overlay-max-h);
   overflow: hidden;
   background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  border: 1px solid #b8a26c;
+  border: 1px solid var(--gold-line);
   border-radius: 12px;
   box-shadow: 0 24px 60px #000c;
 }
@@ -500,7 +522,7 @@ body.is-gm .player-only { display: none !important; }
   display: grid; place-items: center;
   max-height: var(--overlay-max-h);
   background: #0a0d0c;
-  border-right: 1px solid #b8a26c55;
+  border-right: 1px solid color-mix(in srgb, var(--gold-line) 33%, transparent);
   overflow: hidden;
   min-width: 0;
 }
@@ -512,17 +534,17 @@ body.is-gm .player-only { display: none !important; }
 }
 .npc-profile-body { min-width: 0; padding: 26px 30px 28px; overflow-y: auto; max-height: var(--overlay-max-h); }
 .npc-profile-body h2 {
-  margin: 0 36px 14px 0; font-size: 26px; color: #e4d2a0;
-  padding-bottom: 10px; border-bottom: 1px solid #b8a26c55;
+  margin: 0 36px 14px 0; font-size: 26px; color: var(--gold);
+  padding-bottom: 10px; border-bottom: 1px solid color-mix(in srgb, var(--gold-line) 33%, transparent);
 }
 #npcProfileDesc { margin: 0; white-space: pre-wrap; overflow-wrap: break-word; line-height: 1.6; }
 .npc-profile-close {
   position: absolute; top: 10px; right: 10px; z-index: 1;
-  padding: 4px 10px; background: #12181acc;
+  padding: 4px 10px; background: color-mix(in srgb, var(--panel) 80%, transparent);
 }
 @media (max-width: 640px) {
   .npc-profile-card { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
-  .npc-profile-portrait { border-right: 0; border-bottom: 1px solid #b8a26c55; max-height: 50vh; }
+  .npc-profile-portrait { border-right: 0; border-bottom: 1px solid color-mix(in srgb, var(--gold-line) 33%, transparent); max-height: 50vh; }
   .npc-profile-portrait img { max-width: 100%; max-height: 50vh; }
   .npc-profile-body { max-height: none; overflow: visible; padding: 20px; }
 }
@@ -535,7 +557,7 @@ body.is-gm .player-only { display: none !important; }
 /* ---------- Dés ---------- */
 #dicePanel {
   position: fixed; top: calc(var(--topbar-h, 52px) + 8px); left: 8px; bottom: 8px;
-  width: calc(350px * var(--ui-zoom, 1)); max-width: calc(100vw - 16px);
+  width: calc(var(--dice-w, 350px) * var(--ui-zoom, 1)); max-width: calc(100vw - 16px);
   overflow-y: auto; overflow-x: hidden;
   background: var(--panel);
   background-image: var(--grain);
@@ -562,8 +584,11 @@ section.collapsed > h3 .section-toggle::after { transform: rotate(-90deg); }
 section.collapsed > :not(h3) { display: none !important; }
 #dicePanel label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0; }
 #dicePanel label.check { justify-content: flex-start; }
-#dicePanel #rollMod, #dicePanel #poolNormal, #dicePanel #poolHunger, #dicePanel #poolDifficulty { width: 80px; }
-#poolForm button[type="submit"] { margin-top: 6px; }
+#dicePanel #rollMod, #dicePanel .check-form input { width: 80px; }
+#dicePanel .check-form select { width: 130px; }
+.check-form button[type="submit"] { margin-top: 6px; }
+/* sections de jet du jeu (dans #gameChecks) : même séparation que les sections directes du panneau */
+#gameChecks section:last-child { border-bottom: 1px solid var(--line); }
 .dice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .die { padding: 10px 4px; font-weight: 600; }
 #dicePanel label.dice-count { margin: 0; gap: 4px; justify-content: center; font-weight: 600; color: var(--muted); }
@@ -574,11 +599,18 @@ section.collapsed > :not(h3) { display: none !important; }
 #diceLog li.secret { border: 1px dashed var(--accent); }
 #diceLog li.botch { border: 1px solid var(--danger); }
 #diceLog li.overreach { border: 1px solid var(--crit); }
+.rb-tone-ok { color: var(--ok-text); }
+.rb-tone-fail { color: var(--muted); }
 .stat-track { margin-top: 10px; }
 .stat-track:first-child { margin-top: 0; }
 .stat-track-label { display: block; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
 .box-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; max-width: 148px; }
 .box-grid .box { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 3px; background: var(--accent); padding: 0; }
+.box-grid .box.off { background: transparent; }
+/* Compteur chiffré du résumé « Personnage » (PV, SAN…) */
+.quick-counter { display: flex; align-items: center; gap: 8px; }
+.quick-counter button { padding: 0 10px; font-size: 18px; line-height: 1.4; }
+.quick-value { min-width: 70px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
 /* Tracker Santé/Volonté Superficiel/Aggravé : vide = creux, superficiel = or, aggravé = rouge */
 .dmg-grid .box.dmg-empty { background: transparent; }
 .dmg-grid .box.dmg-s { background: var(--crit); }
@@ -665,8 +697,8 @@ section.collapsed > :not(h3) { display: none !important; }
   max-width: min(600px, calc(100vw - 72px));
 }
 .rdie {
-  --rdie-front: #2c3d3b; --rdie-side: #1c2828; --rdie-low: #121a1a;
-  --rdie-edge: var(--accent); --rdie-num: var(--text);
+  --rdie-front: var(--rdie-front-c); --rdie-side: var(--rdie-side-c); --rdie-low: var(--rdie-low-c);
+  --rdie-edge: var(--accent); --rdie-num: var(--rdie-text);
   position: relative; display: inline-grid; place-items: center;
   width: 54px; height: 60px;
 }
@@ -794,7 +826,7 @@ section.collapsed > :not(h3) { display: none !important; }
 .sheet-help-tables table { border-collapse: collapse; font-size: 15px; max-width: 100%; }
 .sheet-help-tables caption { caption-side: top; text-align: left; margin-bottom: 4px; }
 .sheet-help-tables th, .sheet-help-tables td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; }
-.sheet-attr-grid, .sheet-skill-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.sheet-attr-grid, .sheet-skill-grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 18px; }
 .sheet-col { min-width: 0; }
 .sheet-col h4 { margin: 0 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); }
 .sheet-attr-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
@@ -802,7 +834,67 @@ section.collapsed > :not(h3) { display: none !important; }
 .sheet-skill-row { display: grid; grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr); align-items: center; gap: 6px; margin: 6px 0; }
 .sheet-skill-name { font-size: 16px; overflow-wrap: break-word; }
 .sheet-skill-row select, .sheet-skill-row input { width: 100%; min-width: 0; }
-#sheetMerits, #sheetNotes { width: 100%; resize: vertical; }
+.sheet-body textarea { width: 100%; resize: vertical; }
+.sheet-body > section > label { display: grid; gap: 4px; font-size: 16px; color: var(--muted); }
+.sheet-row3.wide { grid-template-columns: minmax(0, 1fr); }
+.sheet-counter + .sheet-counter { margin-top: 12px; }
+.sheet-counter .stat-track { margin-bottom: 10px; }
+/* Maîtrise (Pathfinder) : nom, rang, bonus divers, total calculé */
+.sheet-prof-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7.5em) 54px 3em; align-items: center; gap: 6px; margin: 6px 0; }
+.sheet-prof-row select, .sheet-prof-row input { width: 100%; min-width: 0; padding-left: 4px; padding-right: 4px; }
+.sheet-prof-row small { color: var(--muted); font-size: 12px; letter-spacing: .05em; }
+.sheet-prof-total { text-align: right; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+/* Pourcentage (L'Appel de Cthulhu) : valeur, seuils Majeure / Extrême */
+.sheet-pct-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 4.2em; align-items: center; gap: 6px; margin: 5px 0; }
+.sheet-pct-row input { width: 100%; min-width: 0; padding-left: 4px; padding-right: 4px; }
+.sheet-pct-thresholds { font-size: 14px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Livre de règles (js/rules.js) ---------- */
+.rules-card { height: var(--overlay-max-h); display: flex; flex-direction: column; padding-bottom: 14px; }
+.rules-card .sheet-head { flex: none; margin-bottom: 10px; }
+.rules-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 10px; font-size: 17px; }
+.rules-toolbar button { padding: 3px 10px; min-width: 34px; }
+.rules-group { display: inline-flex; align-items: center; gap: 6px; }
+.rules-muted { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+#rulesPage { width: 70px; padding: 3px 6px; text-align: center; }
+.rules-find { margin-left: auto; }
+#rulesQuery { width: 230px; padding: 3px 8px; }
+#rulesFindInfo { min-width: 70px; }
+/* Zone de lecture : PDF.js exige un conteneur en position absolue */
+.rules-body { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--canvas-bg); }
+.rules-viewer { position: absolute; inset: 0; overflow: auto; }
+.rules-viewer:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.rules-viewer .pdfViewer .page { box-shadow: 0 6px 24px rgba(0, 0, 0, .55); border: 0; margin: 12px auto; }
+.rules-outline {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 280px; overflow-y: auto; padding: 8px 4px;
+  background: var(--panel-2); border-right: 1px solid var(--line); transform: translateX(-100%); transition: transform .15s ease;
+}
+.toc-open .rules-outline { transform: none; }
+.toc-open .rules-viewer { left: 280px; }
+.rules-outline-item {
+  display: block; width: 100%; text-align: left; border: 0; background: none; border-radius: 4px;
+  padding: 4px 8px; font-size: 15px; line-height: 1.3; color: var(--text);
+}
+.rules-outline-item:hover { background: var(--panel); color: var(--accent); }
+.rules-status {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+  padding: 10px 18px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+}
+@media (max-width: 640px) {
+  .rules-find { margin-left: 0; width: 100%; }
+  #rulesQuery { flex: 1; width: auto; min-width: 0; }
+  .rules-outline { width: 85%; }
+  .rules-card { padding: 10px 12px; }
+  .rules-card .sheet-head { gap: 8px; padding-bottom: 8px; }
+  #rulesTitle { font-size: 17px; }
+  #rulesNewTab { font-size: 14px; padding: 4px 8px; }
+  .toc-open .rules-viewer { left: 0; }
+}
+.button-link {
+  display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 6px; font-size: 17px;
+  color: var(--text); background: var(--panel-2); border: 1px solid var(--line); text-decoration: none;
+}
+.button-link:hover { border-color: var(--accent); }
 
 .rename-card {
   width: min(400px, 100%);
@@ -842,7 +934,7 @@ section.collapsed > :not(h3) { display: none !important; }
 .confirm-body p:last-child { margin-bottom: 18px; }
 .confirm-actions { justify-content: flex-end; }
 button.danger-solid { background: var(--danger); border-color: var(--danger); color: #f3dcda; font-weight: 600; }
-button.danger-solid:hover { border-color: #e0a19d; }
+button.danger-solid:hover { border-color: var(--danger-text); }
 
 /* ---------- Aide et raccourcis (js/help.js) ---------- */
 .help-dialog { width: min(560px, calc(100vw - 32px)); }
@@ -862,7 +954,7 @@ kbd {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
-.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 8px 12px; background: var(--accent); color: #081513; border-radius: 6px; transform: translateY(-200%); }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 8px 12px; background: var(--accent); color: var(--on-accent); border-radius: 6px; transform: translateY(-200%); }
 .skip-link:focus { transform: none; }
 #panel:focus { outline: none; }
 /* Taille du texte (réglage de l'aide) : zoom sur le contenu des panneaux, pas sur le plateau */
@@ -959,6 +1051,14 @@ kbd {
 }
 .journal-add button:hover { border-color: var(--ink); background: rgba(58, 44, 24, .08); }
 
+/* ---------- Grands écrans (1920 × 1080 et plus) : panneaux plus larges, historique à pleine hauteur ---------- */
+@media (min-width: 1800px) {
+  :root { --panel-w: 400px; --dice-w: 380px; }
+  .home-card { width: min(640px, 100%); }
+  /* l'historique des dés occupe la hauteur restante du panneau au lieu de 260 px fixes */
+  #diceLog { max-height: max(260px, calc(100vh - var(--topbar-h, 52px) - 620px)); }
+}
+
 @media (max-width: 640px) {
   /* le panneau des dés prend toute la largeur en haut : la barre de dessin passe dessous */
   #drawBar { left: 8px; top: calc(var(--topbar-h, 52px) + 45vh + 16px); }
@@ -966,6 +1066,10 @@ kbd {
   #panel { width: calc(100vw - 16px); top: auto; height: 55vh; }
   #dicePanel { width: calc(100vw - 16px); height: 45vh; bottom: auto; }
   #topbar #btnFit { display: none; }
+  /* trop de boutons pour la largeur d'un téléphone : la barre défile horizontalement */
+  #topbar { overflow-x: auto; scrollbar-width: none; }
+  #topbar > * { flex: none; }
+  #topbar .spacer { flex: 1 0 8px; }
   .sheet-attr-grid, .sheet-skill-grid { grid-template-columns: 1fr; }
   .sheet-row3 { grid-template-columns: 1fr; }
   .sheet-skill-row { grid-template-columns: minmax(0, 1.2fr) 46px minmax(0, 1fr); }
@@ -975,3 +1079,382 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .journal-entries { transition: none; }
 }
+
+/* ================================================================== */
+/* Thèmes par jeu : <html data-game="…"> (js/game.js, accueil).        */
+/* :root ci-dessus = Hunter: the Reckoning (sombre, vert pâle et sang). */
+/* ================================================================== */
+
+/* Hunter: the Reckoning : « le dossier de la cellule » — noir charbon, orange brûlé, photocopie,
+   ruban adhésif, bombe de peinture (d'après le livre de règles H5 : bichromie orange, capitales étroites). */
+[data-game="hunter"] {
+  --bg: #0c0b0a;
+  --panel: #171513;
+  --panel-2: #221e1b;
+  --line: #3b332d;
+  --text: #eee6da;
+  --muted: #ab9d8d;
+  --accent: #e8541e;
+  --danger: #b3121b;
+  --ok: #86a35a;
+  --crit: #ffb13b;
+  --gauge-danger: #ff3a2f;
+  --on-accent: #150803;
+  --danger-text: #ff9f8f;
+  --ok-text: #c2dd97;
+  --cond-text: #ffc0b3;
+  --gold: #ffb27a;
+  --gold-line: #b8541e;
+  --canvas-bg: #0a0908;
+  --canvas-fog: #110e0c;
+  --home-glow: #3a1606;
+  --home-bg:
+    var(--grain), /* grain de photocopie et lignes de balayage */
+    radial-gradient(110% 80% at 30% 45%, transparent 40%, rgba(20, 6, 2, .55) 100%),
+    linear-gradient(180deg, rgb(175, 62, 35) 0%, rgb(207, 90, 50) 50%, rgb(190, 84, 45) 100%) fixed; /* teintes du bord de la couverture */
+  --home-card: rgba(18, 16, 14, .93);
+  --title-glow: rgba(232, 84, 30, .35);
+  --vignette: #080605d8;
+  --rdie-front-c: #2c2724; --rdie-side-c: #1e1a18; --rdie-low-c: #120f0e; --rdie-text: #f6efe6;
+  --font-display: 'Anton', 'Oswald', Impact, sans-serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+  --font-label: 'Oswald', 'Arial Narrow', sans-serif;
+  --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%201%200%200%200%200%200.95%200%200%200%200%200.9%200%200%200%201.4%20-0.55%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%20opacity%3D%220.10%22%2F%3E%3C%2Fsvg%3E"), repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 1px, transparent 1px 4px);
+  --tally: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2012%2020%22%3E%3Cpath%20d%3D%22M3.2%2018.2C4.6%2013%206.9%207.8%209.3%201.8%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%223.3%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%222.6%22%20cy%3D%2219%22%20r%3D%221%22%20fill%3D%22%23000%22%2F%3E%3C%2Fsvg%3E");
+  color-scheme: dark;
+}
+/* Accueil : illustration de couverture à droite, fondue vers la gauche dans l'aplat orange (grain de photocopie, balayage) */
+:root[data-game="hunter"] :is(body.login, body.lobby)::before {
+  content: ''; position: fixed; top: 0; right: 0; bottom: 0; width: min(100vh, 58vw); z-index: 0; pointer-events: none;
+  background: url("/img/hunter-cover.webp") 70% center / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, .6) 22%, #000 45%);
+  mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, .6) 22%, #000 45%);
+}
+:root[data-game="hunter"] :is(body.login, body.lobby) .home-card { z-index: 1; }
+/* À gauche, en miroir : chasseurs et reflets à l'aquarelle, fondus par « produit » dans l'aplat (le papier blanc disparaît) */
+:root[data-game="hunter"] :is(body.login, body.lobby)::after {
+  content: ''; position: fixed; top: 0; left: 0; bottom: 0; width: min(93vh, 46vw); z-index: 0; pointer-events: none;
+  background: url("/img/hunter-reflet.jpg") 30% center / cover no-repeat;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: linear-gradient(to left, transparent 0, rgba(0, 0, 0, .6) 22%, #000 45%);
+  mask-image: linear-gradient(to left, transparent 0, rgba(0, 0, 0, .6) 22%, #000 45%);
+}
+@media (min-width: 901px) and (max-width: 1700px) {
+  /* écran moyen : l'illustration glisse à droite pour que le visage reste visible à côté de la carte centrée */
+  :root[data-game="hunter"] :is(body.login, body.lobby)::before { right: -20vh; width: 100vh; }
+}
+@media (max-width: 900px) {
+  /* écran étroit : illustration en fond atténué derrière la carte */
+  :root[data-game="hunter"] :is(body.login, body.lobby)::before { width: 100vw; opacity: .45; -webkit-mask-image: none; mask-image: none; }
+  :root[data-game="hunter"] :is(body.login, body.lobby)::after { display: none; } /* une seule image derrière la carte */
+}
+:root[data-game="hunter"] h1, :root[data-game="hunter"] h2 { font-weight: 400; letter-spacing: .03em; text-transform: uppercase; }
+:root[data-game="hunter"] .home-card h1 { position: relative; z-index: 0; font-size: 44px; padding-left: 8px; text-shadow: 2px 2px 0 #000; }
+:root[data-game="hunter"] .home-card h1::before {
+  content: ''; position: absolute; z-index: -1; left: -34px; top: 50%; width: 130px; height: 130px;
+  transform: translateY(-50%); background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20200%22%3E%3Cfilter%20id%3D%22b%22%20x%3D%22-20%25%22%20y%3D%22-20%25%22%20width%3D%22140%25%22%20height%3D%22140%25%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.035%22%20numOctaves%3D%223%22%20seed%3D%227%22%2F%3E%3CfeDisplacementMap%20in%3D%22SourceGraphic%22%20scale%3D%2210%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22d%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.9%22%20numOctaves%3D%222%22%20seed%3D%223%22%20result%3D%22t%22%2F%3E%3CfeColorMatrix%20in%3D%22t%22%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20-2.2%201.4%22%20result%3D%22m%22%2F%3E%3CfeComposite%20in%3D%22SourceGraphic%22%20in2%3D%22m%22%20operator%3D%22in%22%2F%3E%3C%2Ffilter%3E%3Cg%20filter%3D%22url(%23b)%22%3E%3Ccircle%20cx%3D%22100%22%20cy%3D%22100%22%20r%3D%2278%22%20fill%3D%22none%22%20stroke%3D%22rgb(232%2C84%2C30)%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20stroke-dasharray%3D%22400%2090%22%20transform%3D%22rotate(-70%20100%20100)%22%20filter%3D%22url(%23d)%22%2F%3E%3Ccircle%20cx%3D%22100%22%20cy%3D%22100%22%20r%3D%2270%22%20fill%3D%22none%22%20stroke%3D%22rgb(232%2C84%2C30)%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%22120%2030%2060%2040%22%20opacity%3D%22.7%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") center / contain no-repeat; opacity: .9;
+}
+/* Étiquettes et titres de section : capitales étroites orange, façon onglet de dossier */
+:root[data-game="hunter"] :is(#panel, #dicePanel, .sheet-body, .help-dialog) h3,
+:root[data-game="hunter"] :is(.stat-track-label, .danger-label, .sheet-col h4, .home-card h2, #panel h4) {
+  font-family: var(--font-label); font-weight: 500; letter-spacing: .14em; color: var(--accent);
+}
+:root[data-game="hunter"] :is(#panel, #dicePanel) h3 { border-left: 3px solid var(--accent); padding-left: 8px; }
+:root[data-game="hunter"] button, :root[data-game="hunter"] .button-link { font-family: var(--font-label); letter-spacing: .04em; font-size: .92em; }
+:root[data-game="hunter"] :is(.dice-grid .die, #rollForm button) { font-size: 1em; }
+/* Cartes : papier photocopié bord à bord, filet orange vertical (mise en page du livre), ruban adhésif */
+:root[data-game="hunter"] :is(.home-card, .sheet-card, .confirm-card, .rename-card, #panel, #dicePanel) {
+  border-radius: 2px; border-color: #2e2825;
+  box-shadow: inset 3px 0 0 var(--accent), 0 18px 50px rgba(0, 0, 0, .65);
+}
+:root[data-game="hunter"] :is(.home-card, .confirm-card, .rename-card) { position: relative; }
+:root[data-game="hunter"] :is(.home-card, .confirm-card, .rename-card)::after {
+  content: ''; position: absolute; top: -13px; right: 36px; width: 118px; height: 30px; transform: rotate(4deg);
+  background: linear-gradient(180deg, rgba(235, 225, 205, .5), rgba(210, 198, 175, .42));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  clip-path: polygon(0 8%, 4% 0, 8% 10%, 12% 2%, 100% 0, 97% 30%, 100% 55%, 96% 80%, 100% 100%, 5% 100%, 0 88%, 3% 60%, 0 35%);
+  pointer-events: none;
+}
+:root[data-game="hunter"] .home-card::before {
+  content: ''; position: absolute; bottom: -12px; left: 30px; width: 96px; height: 28px; transform: rotate(-6deg);
+  background: linear-gradient(180deg, rgba(235, 225, 205, .45), rgba(210, 198, 175, .38));
+  clip-path: polygon(3% 0, 100% 6%, 96% 40%, 100% 70%, 97% 100%, 0 94%, 4% 60%, 0 30%);
+  pointer-events: none;
+}
+/* Tampon « CONFIDENTIEL » sur la fiche */
+:root[data-game="hunter"] .sheet-card:not(.rules-card):not(.journal-book) .sheet-head h2::after {
+  content: 'Confidentiel'; display: inline-block; margin-left: 16px; padding: 1px 8px; vertical-align: 4px;
+  font: 400 15px var(--font-display); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gauge-danger); border: 2px solid var(--gauge-danger); border-radius: 3px; transform: rotate(-5deg);
+  opacity: .85; mix-blend-mode: screen;
+}
+:root[data-game="hunter"] #topbar { border-bottom: 2px solid var(--accent); box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+:root[data-game="hunter"] #roomLabel { font-family: var(--font-display); font-weight: 400; letter-spacing: .04em; text-transform: uppercase; }
+:root[data-game="hunter"] button.primary { background: var(--accent); border-color: #ff7a45; color: var(--on-accent); text-transform: uppercase; letter-spacing: .08em; }
+:root[data-game="hunter"] :is(input, select, textarea) { background: #0f0d0c; border-color: #332c27; }
+/* Jauges Danger / Désespoir : marques de décompte peintes à la bombe plutôt que des losanges */
+:root[data-game="hunter"] :is(.dpip, .ga-pip) {
+  font-size: 0 !important; display: inline-block; vertical-align: middle;
+  -webkit-mask: var(--tally) center / contain no-repeat; mask: var(--tally) center / contain no-repeat;
+  background-color: #4a3f38;
+}
+:root[data-game="hunter"] .dpip { width: 11px; height: 19px; padding: 0; margin: 0 1px; }
+:root[data-game="hunter"] .ga-pip { width: 18px; height: 30px; }
+:root[data-game="hunter"] .dpip.on { background-color: var(--gc, var(--gauge-danger)); filter: drop-shadow(0 0 3px var(--gc, var(--gauge-danger))); }
+:root[data-game="hunter"] .ga-pip.on { background-color: var(--ga); }
+:root[data-game="hunter"] .ga-title { font-weight: 400; letter-spacing: .08em; }
+.game-card[data-game="hunter"] strong { font-weight: 400; text-transform: uppercase; letter-spacing: .03em; font-size: 18px; }
+:root[data-game="hunter"] .roll-banner { border-radius: 3px; box-shadow: inset 4px 0 0 var(--accent), 0 10px 28px #000c; }
+
+/* Pathfinder 2e : grimoire d'aventurier — cuir brun sombre, incrustations de cuir vert forêt,
+   coutures surpiquées, coins de laiton, sang-de-bœuf */
+[data-game="pf2e"] {
+  --bg: #0b1510;
+  --panel: #3a2416;
+  --panel-2: #1f3526;
+  --line: #5e4129;
+  --text: #f4e7cd;
+  --muted: #cbb089;
+  --accent: #dcb06a;
+  --danger: #8f231c;
+  --ok: #8fa35a;
+  --crit: #f0c55e;
+  --gauge-danger: #d24a33;
+  --on-accent: #2a170a;
+  --danger-text: #ffb19f;
+  --ok-text: #cfe3a3;
+  --cond-text: #ffc3b5;
+  --gold: #f1cf8e;
+  --gold-line: #c49350;
+  --canvas-bg: #0a120d;
+  --canvas-fog: #111c15;
+  --home-glow: #1d3b27;
+  --home-bg:
+    radial-gradient(70% 55% at 55% 30%, rgba(90, 160, 110, .10) 0%, transparent 65%),
+    radial-gradient(120% 90% at 50% 120%, rgba(2, 6, 3, .85) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.01 0 0 0 0 0.04 0 0 0 0 0.02 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)'/%3E%3C/svg%3E"),
+    linear-gradient(160deg, #1d4a30 0%, #123321 45%, #06140c 100%);
+  --home-card: rgba(58, 36, 22, .97);
+  --title-glow: rgba(240, 197, 94, .35);
+  --vignette: #0c0704d0;
+  --rdie-front-c: #2f5139; --rdie-side-c: #1f3827; --rdie-low-c: #132319; --rdie-text: #f8edd4;
+  --stitch: rgba(232, 201, 131, .42);
+  --font-display: 'Cinzel Decorative', 'Cinzel', serif;
+  --font-body: 'Crimson Pro', Georgia, serif;
+  /* grain de cuir : bruit fin et serré, plus marqué que le grain par défaut */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
+:root[data-game="pf2e"] h1 { letter-spacing: .04em; color: var(--gold); }
+/*
+ * Relief du cuir, coutures surpiquées et coins de reliure en laiton. Tout est en arrière-plan
+ * de l'élément (et non en pseudo-éléments) : les coins restent en place quand un panneau
+ * défile, et recouvrent les coutures comme sur une vraie reliure (premiers calques = dessus).
+ */
+:root[data-game="pf2e"] :is(.home-card, .sheet-card, .confirm-card, .rename-card, #panel, #dicePanel) {
+  --corner: 46px;
+  --stitch-h: repeating-linear-gradient(90deg, var(--stitch) 0 7px, transparent 7px 12px);
+  --stitch-v: repeating-linear-gradient(180deg, var(--stitch) 0 7px, transparent 7px 12px);
+  border-color: #2a170a;
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, .12), inset 0 0 24px rgba(0, 0, 0, .35), 0 18px 50px rgba(0, 0, 0, .55);
+  background-image:
+    url("/img/brass-corner-tl.png"), url("/img/brass-corner-tr.png"), url("/img/brass-corner-bl.png"), url("/img/brass-corner-br.png"),
+    var(--stitch-h), var(--stitch-h), var(--stitch-v), var(--stitch-v),
+    var(--grain);
+  background-position:
+    left top, right top, left bottom, right bottom,
+    left 7px top 7px, left 7px bottom 7px, left 7px top 7px, right 7px top 7px,
+    0 0;
+  background-size:
+    var(--corner) var(--corner), var(--corner) var(--corner), var(--corner) var(--corner), var(--corner) var(--corner),
+    calc(100% - 14px) 1.5px, calc(100% - 14px) 1.5px, 1.5px calc(100% - 14px), 1.5px calc(100% - 14px),
+    auto;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  background-origin: border-box;
+  border-radius: 4px; /* coin de livre : l'arrondi rognerait le laiton */
+}
+/* Panneaux latéraux : coins plus discrets, pour ne pas passer sous les titres de section */
+:root[data-game="pf2e"] :is(#panel, #dicePanel) { --corner: 30px; }
+/* Barre du haut, panneaux latéraux et barre de dessin en cuir vert forêt ; leurs boutons restent en cuir brun */
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) { background-color: #17301f; --panel-2: #4a2e1b; }
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) :is(input, select, textarea) { background: #0c1811; }
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section { border-bottom-color: #2c4a35; }
+:root[data-game="pf2e"] #topbar {
+  border-bottom: 2px solid #2a170a;
+  box-shadow: inset 0 -5px 0 -3px var(--stitch), 0 6px 18px rgba(0, 0, 0, .45);
+}
+/* Boutons façon cuir embossé, accent laiton */
+:root[data-game="pf2e"] button:not(.primary):not(.on):not(.draw-btn):not(.dpip):not(.section-toggle):not(.box) {
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, .12), inset 0 -2px 0 rgba(0, 0, 0, .25);
+}
+:root[data-game="pf2e"] button.primary { background: linear-gradient(180deg, #ecc98c, #c9975a); border-color: #8a5a2b; }
+:root[data-game="pf2e"] :is(input, select, textarea) { background: #13241a; border-color: #0a150e; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+/* Titres de section : laiton sur cuir sombre */
+:root[data-game="pf2e"] :is(#panel, #dicePanel) h3, :root[data-game="pf2e"] .sheet-body h3 { color: var(--accent); }
+/* Accueil : l'héroïne détourée à gauche, posée sur le fond vert forêt */
+:root[data-game="pf2e"] :is(body.login, body.lobby)::after {
+  content: ''; position: fixed; left: 2vw; bottom: 0; height: 92vh; aspect-ratio: 1140 / 1243; z-index: 0; pointer-events: none;
+  background: url("/img/pf2e-heroine.webp") center bottom / contain no-repeat;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .65)) drop-shadow(0 0 40px rgba(220, 176, 106, .12));
+}
+:root[data-game="pf2e"] :is(body.login, body.lobby) .home-card { position: relative; z-index: 1; }
+@media (min-width: 901px) and (max-width: 1700px) {
+  :root[data-game="pf2e"] :is(body.login, body.lobby)::after { left: -7vw; }
+}
+@media (max-width: 900px) {
+  :root[data-game="pf2e"] :is(body.login, body.lobby)::after { left: 50%; transform: translateX(-50%); opacity: .3; }
+}
+
+
+/* L'Appel de Cthulhu : pierre froide des cités englouties — ardoise, abysses, lueur bioluminescente et runes gravées */
+[data-game="coc7"] {
+  --bg: #06151c;
+  --panel: #2a3337;
+  --panel-2: #333e43;
+  --line: #4b5b61;
+  --text: #dde8e9;
+  --muted: #9aaeb2;
+  --accent: #6fd3e6;
+  --danger: #7e2940;
+  --ok: #5fae8f;
+  --crit: #a4f2d6;
+  --gauge-danger: #c8475f;
+  --on-accent: #04212a;
+  --danger-text: #f3a6b6;
+  --ok-text: #a2e0c8;
+  --cond-text: #f7c0cc;
+  --gold: #bfe9ee;
+  --gold-line: #4f8791;
+  --canvas-bg: #041015;
+  --canvas-fog: #08181e;
+  --home-glow: #0f3442;
+  --rune-band: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22238%22%20height%3D%2218%22%20viewBox%3D%220%200%20238%2018%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-opacity%3D%220.42%22%20stroke-width%3D%221.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(3%201)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(20%201)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(37%201)%22%20d%3D%22M2%200V16M2%204L8%208L2%2012%22%2F%3E%3Cpath%20transform%3D%22translate(54%201)%22%20d%3D%22M2%200V16M2%202L8%206M2%207L8%2011%22%2F%3E%3Cpath%20transform%3D%22translate(71%201)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(88%201)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(105%201)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(122%201)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20transform%3D%22translate(139%201)%22%20d%3D%22M8%200L2%206L8%2010L2%2016%22%2F%3E%3Cpath%20transform%3D%22translate(156%201)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(173%201)%22%20d%3D%22M2%200V16L8%2012L2%208L8%204L2%200%22%2F%3E%3Cpath%20transform%3D%22translate(190%201)%22%20d%3D%22M1%2016V0M9%2016V0M1%200L9%208M9%200L1%208%22%2F%3E%3Cpath%20transform%3D%22translate(207%201)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20transform%3D%22translate(224%201)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --home-bg:
+    radial-gradient(90% 60% at 50% -10%, rgba(111, 211, 230, .16) 0%, transparent 60%),
+    radial-gradient(120% 80% at 50% 120%, rgba(1, 8, 12, .9) 0%, transparent 65%),
+    repeating-radial-gradient(ellipse 140% 40% at 50% 115%, rgba(111, 211, 230, .035) 0 2px, transparent 2px 38px),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22440%22%20height%3D%22440%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%220.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(40%2050)%20rotate(-12)%20scale(3.2)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(250%2030)%20rotate(8)%20scale(3.2)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20transform%3D%22translate(150%20190)%20rotate(18)%20scale(3.2)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20transform%3D%22translate(330%20230)%20rotate(-6)%20scale(3.2)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(60%20300)%20rotate(4)%20scale(3.2)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(260%20360)%20rotate(-15)%20scale(3.2)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3Cpath%20transform%3D%22translate(380%20110)%20rotate(12)%20scale(3.2)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
+    linear-gradient(180deg, #0c2a36 0%, #06151c 55%, #030b0f 100%);
+  --home-card: rgba(42, 51, 55, .95);
+  --title-glow: rgba(111, 211, 230, .55);
+  --vignette: #020a0ed8;
+  --rdie-front-c: #4a585e; --rdie-side-c: #353f44; --rdie-low-c: #222a2e; --rdie-text: #eef8f8;
+  --font-display: 'Cormorant SC', 'Cinzel', serif;
+  --font-body: 'Cormorant Garamond', Georgia, serif;
+  --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%22240%22%3E%3Cfilter%20id%3D%22m%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.035%22%20numOctaves%3D%225%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.85%200%200%200%200%200.9%200%200%200%200%200.95%200%200%200%200.08%200%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22g%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.95%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200.5%200%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23m)%22%2F%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23g)%22%20opacity%3D%220.3%22%2F%3E%3C%2Fsvg%3E");
+  color-scheme: dark;
+}
+:root[data-game="coc7"] body { font-weight: 500; font-variant-numeric: lining-nums; } /* Cormorant est fine : un peu plus de corps pour la lisibilité */
+:root[data-game="coc7"] .rdie-num { font-variant-numeric: lining-nums; } /* le raccourci « font » des dés réinitialise les chiffres */
+:root[data-game="coc7"] h1 { color: var(--text); letter-spacing: .06em; }
+/* Runes sous le titre de l'accueil (« Cthulhu » en futhark) et devant celui de la fiche */
+:root[data-game="coc7"] .home-card h1::after {
+  content: ''; display: block; width: 154px; height: 20px; margin-top: 6px;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22154%22%20height%3D%2220%22%20viewBox%3D%220%200%20154%2020%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(6%202)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(28%202)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(50%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(72%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(94%202)%22%20d%3D%22M3%2016V0L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(116%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(138%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") left center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(111, 211, 230, .8)); opacity: .8;
+}
+:root[data-game="coc7"] .sheet-head h2::before {
+  content: ''; display: inline-block; width: 12px; height: 20px; margin-right: 10px; vertical-align: -2px;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2220%22%20viewBox%3D%220%200%2012%2020%22%3E%3Cpath%20transform%3D%22translate(1%202)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; filter: drop-shadow(0 0 4px rgba(111, 211, 230, .8));
+}
+/* Dalles de pierre taillée : arêtes biseautées, frises de runes gravées en haut et en bas */
+:root[data-game="coc7"] :is(.home-card, .sheet-card, .confirm-card, .rename-card, #panel, #dicePanel) {
+  border-color: #161d20;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -2px 0 rgba(0, 0, 0, .35),
+    inset 0 0 0 1px rgba(111, 211, 230, .06), inset 0 0 40px rgba(0, 0, 0, .35),
+    0 18px 50px rgba(0, 0, 0, .6);
+  background-image: var(--rune-band), var(--rune-band), var(--grain);
+  background-position: left 10px top 6px, right 10px bottom 6px, 0 0;
+  background-size: auto 11px, auto 11px, auto;
+  background-repeat: repeat-x, repeat-x, repeat;
+}
+/* place pour la frise du haut dans les panneaux latéraux */
+:root[data-game="coc7"] :is(#panel, #dicePanel) { padding-top: 16px; }
+:root[data-game="coc7"] #topbar {
+  border-bottom: 1px solid #161d20;
+  box-shadow: inset 0 -1px 0 rgba(111, 211, 230, .18), 0 6px 18px rgba(0, 0, 0, .5);
+}
+:root[data-game="coc7"] button.primary {
+  background: linear-gradient(180deg, #8fe3f0, #3fa9bd); border-color: #2c7f90;
+  box-shadow: 0 0 14px rgba(111, 211, 230, .35);
+}
+:root[data-game="coc7"] :is(input, select, textarea) { background: #1f272a; border-color: #161d20; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+:root[data-game="coc7"] :is(input, select, .dr-total, .dr-detail, .rb-result, .quick-value, .sheet-pct-thresholds, .badge) { font-variant-numeric: lining-nums tabular-nums; }
+/* lueur des abysses sur les titres de section */
+:root[data-game="coc7"] :is(#panel, #dicePanel) h3 { color: var(--accent); text-shadow: 0 0 8px rgba(111, 211, 230, .35); }
+
+/* ---------- Choix du jeu (accueil) ---------- */
+.game-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
+.game-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--text); line-height: 1.25;
+  font-family: var(--font-body); /* chaque carte porte son propre data-game : aperçu de la DA du jeu */
+}
+.game-card strong { font-family: var(--font-display); font-size: 16px; }
+.game-card span { font-size: 14px; color: var(--muted); }
+.game-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.game-badge {
+  flex: none; font-size: 13px; padding: 1px 8px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); font-family: var(--font-body);
+}
+@media (max-width: 640px) {
+  .game-picker { grid-template-columns: 1fr; }
+}
+
+/* ---------- Salon en préparation (js/prep.js) ---------- */
+/* Joueur : plus de plateau (le serveur n'en envoie rien), seulement fiche et journal */
+#prepScreen { display: none; }
+body.prep-limited #prepScreen {
+  display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 5;
+  padding: calc(var(--topbar-h, 52px) + 16px) 16px 16px;
+  background: var(--home-bg, var(--bg));
+}
+body.prep-limited :is(#stage, #dicePanel, #drawBar, #panel, #gauges, #initiativeBadge, #btnDice, #btnPanel, #btnFit, #rollBanner) { display: none !important; }
+.prep-card {
+  width: min(520px, 100%); text-align: center;
+  background: var(--panel); background-image: var(--grain);
+  border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px;
+}
+.prep-card h2 { margin: 0 0 10px; font-size: 23px; }
+.prep-card p { margin: 0 0 18px; color: var(--muted); }
+.prep-actions { justify-content: center; flex-wrap: wrap; }
+/* MJ : rappel permanent que les joueurs ne voient rien */
+body.is-gm.is-prep #stage::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  box-shadow: inset 0 0 0 4px var(--danger);
+}
+#btnPrep, #prepBadge { white-space: nowrap; }
+#btnPrep[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: #f3dcda; }
+
+/* ---------- Portrait du personnage et cadrage du jeton (js/portrait.js) ---------- */
+.sheet-portrait {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+  padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.sheet-portrait[hidden] { display: none; }
+.sheet-portrait-img {
+  width: 96px; height: 120px; flex: none; object-fit: cover;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+}
+.token-preview { width: 80px; height: 80px; flex: none; }
+.sheet-portrait-actions { flex: 1; min-width: 200px; }
+.sheet-portrait-actions .hint { margin: 0 0 8px; }
+.sheet-portrait-actions .row { flex-wrap: wrap; }
+.crop-dialog { width: min(700px, calc(100vw - 32px)); }
+.crop-dialog .confirm-card { max-height: calc(100vh - 48px); overflow-y: auto; }
+.crop-dialog .hint { margin: 0 0 12px; }
+.crop-layout { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.crop-canvas {
+  max-width: 100%; height: auto; display: block;
+  border: 1px solid var(--line); border-radius: 6px;
+  cursor: move; touch-action: none;
+}
+.crop-side { display: grid; justify-items: center; gap: 10px; }
+.crop-side .token-preview { width: 96px; height: 96px; }
+.crop-side label { display: grid; gap: 4px; font-size: 16px; color: var(--muted); }
+.prep-badge { color: var(--danger-text); border-color: var(--danger); }
+.prep-badge[hidden] { display: none; }

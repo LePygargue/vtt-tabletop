@@ -5,7 +5,6 @@
  * Contrairement à la fiche PNJ rapide (npc.js, secrète), elle voyage avec le jeton
  * (champs `portrait` et `description`), donc seulement vers ceux qui voient ce PNJ.
  */
-const PORTRAIT_MAX_SIDE = 1200; // réduit côté client avant envoi (le serveur plafonne à 5 Mo)
 let npcProfileOpenId = null;
 let lastFocusBeforeProfile = null;
 
@@ -107,35 +106,12 @@ $('npcDescription').addEventListener('input', () => {
 });
 $('npcDescription').addEventListener('blur', flushDescription);
 
-/** Réduit l'image si besoin (côté le plus long ≤ PORTRAIT_MAX_SIDE) pour un envoi léger. */
-async function preparePortrait(file) {
-  let bmp;
-  try { bmp = await createImageBitmap(file); } catch (e) { throw new Error('Image illisible.'); }
-  const k = Math.min(1, PORTRAIT_MAX_SIDE / Math.max(bmp.width, bmp.height));
-  if (k === 1 && file.size <= 2 * 1024 * 1024) return file;
-  const c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * k);
-  c.height = Math.round(bmp.height * k);
-  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  const blob = await new Promise((res) => c.toBlob(res, 'image/webp', 0.88));
-  if (!blob) throw new Error('Impossible de réduire cette image.');
-  return blob;
-}
-
 async function uploadPortrait(file) {
   const tokenId = npcProfileEditId;
   if (!tokenId) return;
   $('npcPortraitPick').disabled = true;
   try {
-    const blob = await preparePortrait(file);
-    toast('Envoi du portrait…');
-    const r = await fetch(`/api/rooms/${roomId}/tokens/${tokenId}/portrait`, {
-      method: 'POST',
-      headers: { 'X-GM-Key': gmKey, 'Content-Type': blob.type || 'application/octet-stream' },
-      body: blob,
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || 'Échec de l\'envoi');
+    await uploadTokenPortrait(tokenId, file); // portrait.js
     toast('Portrait ajouté.');
   } catch (e) {
     toast(e.message);
