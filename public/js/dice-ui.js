@@ -264,6 +264,7 @@ function showRollBanner(roll) {
       if (tone === 'crit' && spin) face.classList.add('crit-land');
       const badge = document.createElement('div');
       badge.className = 'rb-crit-badge rb-tone-' + tone;
+      if (roll.tier) badge.dataset.tier = roll.tier;
       badge.textContent = (TONE_ICONS[tone] || '') + roll.tierLabel;
       info.appendChild(badge);
     } else if (rollHasCrit(roll)) {

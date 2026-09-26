@@ -350,6 +350,8 @@ function buildQuickStats() {
       quickRenderers.push((s) => {
         const max = counterMax(f, s);
         value.textContent = max != null ? `${s[f.key]} / ${max}` : String(s[f.key]);
+        wrap.dataset.key = f.key;
+        wrap.style.setProperty('--fill', max ? Math.max(0, Math.min(1, s[f.key] / max)) : 1);
       });
     }
   }

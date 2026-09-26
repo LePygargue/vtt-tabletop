@@ -168,20 +168,42 @@ function visibleWorldRect(v) {
   return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) };
 }
 
-/** Couleurs du plateau lues dans le thème du jeu (variables CSS), relues à chaque changement de jeu. */
-const themeColors = { bg: '#0a0d0c', fog: '#0d1512' };
+/**
+ * Couleurs du plateau lues dans le thème du jeu (variables CSS), relues à chaque changement de jeu.
+ * Facultatifs : --canvas-grid (couleur du quadrillage), --canvas-felt: 1 (fond en feutrine, grain
+ * aléatoire autour de --canvas-bg), --token-rim (liseré extérieur des jetons, ex. laiton).
+ */
+const themeColors = { bg: '#0a0d0c', fog: '#0d1512', grid: 'rgba(255,255,255,.3)', rim: '', felt: null };
 function refreshThemeColors() {
   const css = getComputedStyle(document.documentElement);
   themeColors.bg = css.getPropertyValue('--canvas-bg').trim() || '#0a0d0c';
   themeColors.fog = css.getPropertyValue('--canvas-fog').trim() || '#0d1512';
+  themeColors.grid = css.getPropertyValue('--canvas-grid').trim() || 'rgba(255,255,255,.3)';
+  themeColors.rim = css.getPropertyValue('--token-rim').trim();
+  themeColors.felt = css.getPropertyValue('--canvas-felt').trim() === '1' ? feltPattern(themeColors.bg) : null;
   if (typeof viewport !== 'undefined' && viewport) viewport.dirty = true;
+}
+/** Tuile de feutrine : couleur de fond parsemée de fibres claires et sombres (motif répété à l'écran). */
+function feltPattern(color) {
+  const tile = document.createElement('canvas');
+  tile.width = tile.height = 192;
+  const c = tile.getContext('2d');
+  c.fillStyle = color;
+  c.fillRect(0, 0, 192, 192);
+  for (let i = 0; i < 2600; i++) {
+    const light = Math.random() < 0.5;
+    c.fillStyle = light ? 'rgba(255, 255, 255, .045)' : 'rgba(0, 0, 0, .12)';
+    const x = Math.random() * 192, y = Math.random() * 192, a = Math.random() * Math.PI;
+    c.fillRect(x, y, 1 + Math.cos(a) * 2.5, 1 + Math.sin(a) * 2.5); // petites fibres orientées au hasard
+  }
+  return c.createPattern(tile, 'repeat');
 }
 
 function drawViewport(v) {
   v.dirty = false;
   const ctx = v.ctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = themeColors.bg;
+  ctx.fillStyle = themeColors.felt || themeColors.bg;
   ctx.fillRect(0, 0, v.canvas.width, v.canvas.height);
   ctx.setTransform(v.dpr * v.cam.s, 0, 0, v.dpr * v.cam.s, v.dpr * v.cam.x, v.dpr * v.cam.y);
 
@@ -214,7 +236,7 @@ function drawViewport(v) {
     ctx.strokeStyle = 'rgba(0,0,0,.4)';
     ctx.lineWidth = 2 / v.cam.s;
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.strokeStyle = themeColors.grid;
     ctx.lineWidth = 1 / v.cam.s;
     ctx.stroke();
   }
@@ -286,6 +308,15 @@ function drawToken(v, t) {
   if (t.hidden) ctx.setLineDash([r * 0.3, r * 0.2]);
   ctx.stroke();
   ctx.setLineDash([]);
+  if (themeColors.rim && !t.hidden) {
+    // liseré de thème autour du jeton (médaillon de laiton pour Pathfinder)
+    const w = Math.max(1.5, r * 0.07);
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, r + ctx.lineWidth / 2 + w / 2, 0, Math.PI * 2);
+    ctx.lineWidth = w;
+    ctx.strokeStyle = themeColors.rim;
+    ctx.stroke();
+  }
   if (t.id === selectedId) {
     ctx.beginPath();
     ctx.arc(t.x, t.y, r + Math.max(3, r * 0.1), 0, Math.PI * 2);

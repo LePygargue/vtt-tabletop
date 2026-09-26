@@ -1275,22 +1275,105 @@ kbd {
 }
 /* Panneaux latéraux : coins plus discrets, pour ne pas passer sous les titres de section */
 :root[data-game="pf2e"] :is(#panel, #dicePanel) { --corner: 30px; }
-/* Barre du haut, panneaux latéraux et barre de dessin en cuir vert forêt ; leurs boutons restent en cuir brun */
-:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) { background-color: #17301f; --panel-2: #4a2e1b; }
-:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) :is(input, select, textarea) { background: #0c1811; }
-:root[data-game="pf2e"] :is(#panel, #dicePanel) section { border-bottom-color: #2c4a35; }
+/* ================= Pathfinder en jeu : « la table de l'aventurier » =================
+   Une seule famille de matières dans les panneaux (cuir vert forêt, liserés de laiton), le brun
+   de la reliure en accent ; plaques de laiton gravé pour les titres ; plateau en feutrine verte ;
+   bannière de jet en parchemin à sceau de cire ; fiche de personnage en parchemin relié cuir. */
+[data-game="pf2e"] {
+  --canvas-bg: #10281a;
+  --canvas-fog: #07120b;
+  --canvas-grid: rgba(220, 176, 106, .22);
+  --canvas-felt: 1;
+  --token-rim: #c9973f;
+  --vignette: #030805e0;
+  --brass-hi: #f3d493; --brass: #c9973f; --brass-lo: #7c5620;
+  --filigree: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%2214%22%20viewBox%3D%220%200%20240%2014%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(220%2C176%2C106)%22%20stroke-width%3D%221%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M4%207H100M140%207H236%22%20stroke-opacity%3D%22.55%22%2F%3E%3Cpath%20d%3D%22M100%207c6-6%2010-6%2014%200M140%207c-6-6-10-6-14%200%22%20%2F%3E%3Cpath%20d%3D%22M120%201.5l5.5%205.5-5.5%205.5-5.5-5.5z%22%20fill%3D%22rgb(220%2C176%2C106)%22%20fill-opacity%3D%22.35%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+}
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) {
+  background-color: #17301f;
+  --panel-2: #213f2b; --line: #3c5a3f;
+}
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel, #drawBar) :is(input, select, textarea) { background: #0c1811; border-color: #4a3a1e; }
+/* Boutons : cuir vert à liseré de laiton, relief léger (les boutons actifs restent en laiton plein) */
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel) button:not(.primary):not(.on):not(.dpip):not(.section-toggle):not(.box):not(.rules-outline-item) {
+  background: linear-gradient(180deg, #28472f, #1b3423);
+  border-color: #6b5226;
+  box-shadow: inset 0 1px 0 rgba(243, 212, 147, .14), inset 0 -2px 0 rgba(0, 0, 0, .3);
+}
+:root[data-game="pf2e"] :is(#topbar, #panel, #dicePanel) button:not(.primary):not(.on):not(.dpip):not(.section-toggle):not(.box):hover { border-color: var(--brass-hi); }
+:root[data-game="pf2e"] :is(button.primary, .seg button.on, .draw-btn.on) {
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass) 55%, #a8772c);
+  border-color: var(--brass-lo); color: #2a1a08;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 215, .6), 0 1px 3px rgba(0, 0, 0, .5);
+}
+/* Barre du haut : rail de laiton sombre, nom du salon gravé */
 :root[data-game="pf2e"] #topbar {
-  border-bottom: 2px solid #2a170a;
-  box-shadow: inset 0 -5px 0 -3px var(--stitch), 0 6px 18px rgba(0, 0, 0, .45);
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--brass-lo), var(--brass-hi) 30%, var(--brass) 70%, var(--brass-lo)) 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
 }
-/* Boutons façon cuir embossé, accent laiton */
-:root[data-game="pf2e"] button:not(.primary):not(.on):not(.draw-btn):not(.dpip):not(.section-toggle):not(.box) {
-  box-shadow: inset 0 1px 0 rgba(255, 230, 190, .12), inset 0 -2px 0 rgba(0, 0, 0, .25);
+:root[data-game="pf2e"] #roomLabel { font-family: var(--font-display); color: var(--gold); letter-spacing: .03em; }
+/* Titres de section : plaque de laiton gravé, séparateur en filigrane au lieu des coutures entre sections */
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section { border-bottom: 0; background: var(--filigree) center bottom / 220px 14px no-repeat; padding-bottom: 18px; }
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section:last-child { background: none; }
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section > h3 {
+  display: block; padding: 3px 10px 2px; margin: 4px 0 10px;
+  color: #2a1a08; text-shadow: 0 1px 0 rgba(255, 240, 200, .5); letter-spacing: .08em;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass) 60%, #a8772c);
+  border: 1px solid var(--brass-lo); border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 215, .55), 0 2px 4px rgba(0, 0, 0, .45);
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
 }
-:root[data-game="pf2e"] button.primary { background: linear-gradient(180deg, #ecc98c, #c9975a); border-color: #8a5a2b; }
-:root[data-game="pf2e"] :is(input, select, textarea) { background: #13241a; border-color: #0a150e; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
-/* Titres de section : laiton sur cuir sombre */
-:root[data-game="pf2e"] :is(#panel, #dicePanel) h3, :root[data-game="pf2e"] .sheet-body h3 { color: var(--accent); }
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section > h3 .section-toggle:hover { color: #000; }
+:root[data-game="pf2e"] :is(#panel, #dicePanel) section.collapsed > h3 { margin-bottom: 0; }
+:root[data-game="pf2e"] :is(#panel h4, .stat-track-label) { color: var(--accent); }
+/* Dés : tuiles de cuir sobres comme les autres boutons, en minuscules ; le d20 (dé de Pathfinder) cerclé de laiton */
+:root[data-game="pf2e"] #dicePanel .dice-grid .die { font-family: var(--font-body); text-transform: none; }
+:root[data-game="pf2e"] #dicePanel .dice-grid .die[data-sides="20"] { border-color: var(--brass-hi); color: var(--gold); box-shadow: inset 0 0 0 1px var(--brass-lo), 0 0 8px rgba(243, 212, 147, .3); }
+:root[data-game="pf2e"] .rdie { --rdie-edge: var(--brass); }
+/* Historique et initiative : lignes de registre à filet doré, tour actif marqué d'un ruban rouge */
+:root[data-game="pf2e"] #diceLog li { background: rgba(0, 0, 0, .18); border-radius: 0; border-bottom: 1px solid rgba(201, 151, 63, .35); }
+:root[data-game="pf2e"] #initiativeList li { background: rgba(0, 0, 0, .18); border-color: rgba(201, 151, 63, .35); border-radius: 2px; }
+:root[data-game="pf2e"] #initiativeList li.sel { outline: 0; border-color: var(--brass); box-shadow: inset 5px 0 0 #a3242b, 0 0 8px rgba(243, 212, 147, .3); }
+/* Bannière de jet : parchemin déroulé, degré de réussite en sceau de cire */
+:root[data-game="pf2e"] .roll-banner {
+  --text: #2e2012; --muted: #6e5536; --ok-text: #2f5a2c;
+  color: var(--text);
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22260%22%20height%3D%22260%22%3E%3Cfilter%20id%3D%22p%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.02%200.05%22%20numOctaves%3D%224%22%20seed%3D%229%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.45%200%200%200%200%200.3%200%200%200%200%200.12%200%200%200%200.35%200%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22f%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.9%22%20numOctaves%3D%222%22%20seed%3D%225%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.35%200%200%200%200%200.24%200%200%200%200%200.1%200%200%200%200.25%200%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23p)%22%2F%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23f)%22%2F%3E%3C%2Fsvg%3E"), linear-gradient(180deg, #f3e6c4, #e4d0a2);
+  border: 1px solid var(--brass-lo); border-radius: 3px;
+  box-shadow: inset 0 0 18px rgba(110, 70, 20, .35), 0 12px 30px rgba(0, 0, 0, .6);
+}
+:root[data-game="pf2e"] .roll-banner.crit { border-color: var(--brass); }
+:root[data-game="pf2e"] .roll-banner.botch { border-color: #7e1b1b; }
+:root[data-game="pf2e"] .rb-crit-badge {
+  display: inline-block; align-self: flex-start; margin-top: 4px; padding: 2px 12px 2px 10px;
+  border-radius: 999px 40% 999px 55%; /* cire écrasée, bords irréguliers */
+  font-family: var(--font-display); font-size: 14px; letter-spacing: .04em; animation: none;
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .35), inset 0 2px 2px rgba(255, 255, 255, .25), 0 2px 3px rgba(0, 0, 0, .4);
+}
+:root[data-game="pf2e"] .rb-tone-crit { background: radial-gradient(circle at 35% 30%, #ffe7a3, #d8a53d 60%, #9a6a18); color: #3a2405; }
+:root[data-game="pf2e"] .rb-tone-ok { background: radial-gradient(circle at 35% 30%, #6fae76, #2f6e3c 60%, #1b4526); color: #f3ecd2; }
+:root[data-game="pf2e"] .rb-tone-fail { background: radial-gradient(circle at 35% 30%, #9a9585, #5f5b4f 60%, #3c3931); color: #efe9d8; }
+:root[data-game="pf2e"] :is(.rb-tone-botch, .rb-botch-badge) { background: radial-gradient(circle at 35% 30%, #d0514a, #8f1f1c 60%, #5a0f0e); color: #fbe3dc; }
+/* Fiche de personnage : pages en parchemin dans la reliure en cuir (coins de laiton conservés) */
+:root[data-game="pf2e"] #sheetPanel .sheet-card {
+  --text: #2e2012; --muted: #6e5536; --line: #bda06c; --panel-2: #eadbb5; --accent: #7a4d12; --ok-text: #2f5a2c; --danger-text: #8f231c;
+  --stitch: rgba(92, 58, 22, .45);
+  color: var(--text); color-scheme: light;
+  background-color: #efe2c0;
+  border: 9px solid #2e1c10;
+  box-shadow: inset 0 0 40px rgba(120, 80, 25, .35), 0 0 0 1px #120a05, 0 24px 60px rgba(0, 0, 0, .7);
+}
+:root[data-game="pf2e"] #sheetPanel .sheet-card :is(input, select, textarea) {
+  background: rgba(255, 250, 235, .7); border-color: #bda06c; color: #2e2012; box-shadow: inset 0 1px 2px rgba(90, 60, 20, .2);
+}
+:root[data-game="pf2e"] #sheetPanel .sheet-card button:not(.box) {
+  background: linear-gradient(180deg, #f6e9c6, #e2cc97); border-color: #a07f45; color: #2e2012;
+}
+:root[data-game="pf2e"] #sheetPanel .sheet-card :is(.sheet-head h2, .sheet-body h3) { color: #5c2a14; }
+:root[data-game="pf2e"] #sheetPanel .sheet-body section { border-color: #cdb383; }
+:root[data-game="pf2e"] #sheetPanel .sheet-card .box-grid .box { border-color: #a07f45; }
+
 /* Accueil : l'héroïne détourée à gauche, posée sur le fond vert forêt */
 :root[data-game="pf2e"] :is(body.login, body.lobby)::after {
   content: ''; position: fixed; left: 2vw; bottom: 0; height: 92vh; aspect-ratio: 1140 / 1243; z-index: 0; pointer-events: none;
@@ -1306,84 +1389,158 @@ kbd {
 }
 
 
-/* L'Appel de Cthulhu : pierre froide des cités englouties — ardoise, abysses, lueur bioluminescente et runes gravées */
+/* L'Appel de Cthulhu : d'après le jeu vidéo Call of Cthulhu (2018) — noir d'encre, fumée sarcelle,
+   émeraude lumineux, violet de la folie, cadres fins à coins et losanges ; frises de runes conservées. */
 [data-game="coc7"] {
-  --bg: #06151c;
-  --panel: #2a3337;
-  --panel-2: #333e43;
-  --line: #4b5b61;
-  --text: #dde8e9;
-  --muted: #9aaeb2;
-  --accent: #6fd3e6;
-  --danger: #7e2940;
-  --ok: #5fae8f;
-  --crit: #a4f2d6;
-  --gauge-danger: #c8475f;
-  --on-accent: #04212a;
-  --danger-text: #f3a6b6;
-  --ok-text: #a2e0c8;
-  --cond-text: #f7c0cc;
-  --gold: #bfe9ee;
-  --gold-line: #4f8791;
-  --canvas-bg: #041015;
-  --canvas-fog: #08181e;
-  --home-glow: #0f3442;
-  --rune-band: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22238%22%20height%3D%2218%22%20viewBox%3D%220%200%20238%2018%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-opacity%3D%220.42%22%20stroke-width%3D%221.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(3%201)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(20%201)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(37%201)%22%20d%3D%22M2%200V16M2%204L8%208L2%2012%22%2F%3E%3Cpath%20transform%3D%22translate(54%201)%22%20d%3D%22M2%200V16M2%202L8%206M2%207L8%2011%22%2F%3E%3Cpath%20transform%3D%22translate(71%201)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(88%201)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(105%201)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(122%201)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20transform%3D%22translate(139%201)%22%20d%3D%22M8%200L2%206L8%2010L2%2016%22%2F%3E%3Cpath%20transform%3D%22translate(156%201)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(173%201)%22%20d%3D%22M2%200V16L8%2012L2%208L8%204L2%200%22%2F%3E%3Cpath%20transform%3D%22translate(190%201)%22%20d%3D%22M1%2016V0M9%2016V0M1%200L9%208M9%200L1%208%22%2F%3E%3Cpath%20transform%3D%22translate(207%201)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20transform%3D%22translate(224%201)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --bg: #040807;
+  --panel: #0b1311;
+  --panel-2: #111c19;
+  --line: #24403a;
+  --text: #dfe7e2;
+  --muted: #9fb3ab;
+  --accent: #3fe0a5;
+  --danger: #8a2d3d;
+  --ok: #3fbf8a;
+  --crit: #e2bf5a;
+  --gauge-danger: #d0556a;
+  --on-accent: #03140d;
+  --danger-text: #f0a8b6;
+  --ok-text: #8ff0c6;
+  --cond-text: #f5c2cd;
+  --gold: #e2bf5a;
+  --gold-line: #2c6b58;
+  --madness: #9b6fe0;
+  --canvas-bg: #050a09;
+  --canvas-fog: #010302;
+  --canvas-grid: rgba(63, 224, 165, .09);
+  --token-rim: #3fe0a5;
+  --home-glow: #0c2a22;
+  --rune-band: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22238%22%20height%3D%2218%22%20viewBox%3D%220%200%20238%2018%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(63%2C224%2C165)%22%20stroke-opacity%3D%220.42%22%20stroke-width%3D%221.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(3%201)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(20%201)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(37%201)%22%20d%3D%22M2%200V16M2%204L8%208L2%2012%22%2F%3E%3Cpath%20transform%3D%22translate(54%201)%22%20d%3D%22M2%200V16M2%202L8%206M2%207L8%2011%22%2F%3E%3Cpath%20transform%3D%22translate(71%201)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(88%201)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(105%201)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(122%201)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20transform%3D%22translate(139%201)%22%20d%3D%22M8%200L2%206L8%2010L2%2016%22%2F%3E%3Cpath%20transform%3D%22translate(156%201)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(173%201)%22%20d%3D%22M2%200V16L8%2012L2%208L8%204L2%200%22%2F%3E%3Cpath%20transform%3D%22translate(190%201)%22%20d%3D%22M1%2016V0M9%2016V0M1%200L9%208M9%200L1%208%22%2F%3E%3Cpath%20transform%3D%22translate(207%201)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20transform%3D%22translate(224%201)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  --smoke: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22700%22%20height%3D%22700%22%3E%3Cfilter%20id%3D%22s%22%20x%3D%220%22%20y%3D%220%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.0045%22%20numOctaves%3D%224%22%20seed%3D%2217%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.12%200%200%200%200%200.55%200%200%200%200%200.5%200%200%200%200.8%20-0.2%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23s)%22%2F%3E%3C%2Fsvg%3E");
+  --divider: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%2212%22%20viewBox%3D%220%200%20300%2012%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20x2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%233fe0a5%22%20stop-opacity%3D%220%22%2F%3E%3Cstop%20offset%3D%22.5%22%20stop-color%3D%22%233fe0a5%22%20stop-opacity%3D%22.75%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%233fe0a5%22%20stop-opacity%3D%220%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%220%22%20y%3D%225.5%22%20width%3D%22300%22%20height%3D%221%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M150%201.5l4.5%204.5-4.5%204.5-4.5-4.5z%22%20fill%3D%22%230a1412%22%20stroke%3D%22%233fe0a5%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E");
   --home-bg:
-    radial-gradient(90% 60% at 50% -10%, rgba(111, 211, 230, .16) 0%, transparent 60%),
-    radial-gradient(120% 80% at 50% 120%, rgba(1, 8, 12, .9) 0%, transparent 65%),
-    repeating-radial-gradient(ellipse 140% 40% at 50% 115%, rgba(111, 211, 230, .035) 0 2px, transparent 2px 38px),
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22440%22%20height%3D%22440%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-opacity%3D%220.07%22%20stroke-width%3D%220.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(40%2050)%20rotate(-12)%20scale(3.2)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(250%2030)%20rotate(8)%20scale(3.2)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20transform%3D%22translate(150%20190)%20rotate(18)%20scale(3.2)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20transform%3D%22translate(330%20230)%20rotate(-6)%20scale(3.2)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(60%20300)%20rotate(4)%20scale(3.2)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(260%20360)%20rotate(-15)%20scale(3.2)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3Cpath%20transform%3D%22translate(380%20110)%20rotate(12)%20scale(3.2)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
-    linear-gradient(180deg, #0c2a36 0%, #06151c 55%, #030b0f 100%);
-  --home-card: rgba(42, 51, 55, .95);
-  --title-glow: rgba(111, 211, 230, .55);
-  --vignette: #020a0ed8;
-  --rdie-front-c: #4a585e; --rdie-side-c: #353f44; --rdie-low-c: #222a2e; --rdie-text: #eef8f8;
-  --font-display: 'Cormorant SC', 'Cinzel', serif;
-  --font-body: 'Cormorant Garamond', Georgia, serif;
-  --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%22240%22%3E%3Cfilter%20id%3D%22m%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.035%22%20numOctaves%3D%225%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.85%200%200%200%200%200.9%200%200%200%200%200.95%200%200%200%200.08%200%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22g%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.95%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200.5%200%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23m)%22%2F%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23g)%22%20opacity%3D%220.3%22%2F%3E%3C%2Fsvg%3E");
+    radial-gradient(60% 50% at 70% 35%, rgba(40, 150, 120, .16) 0%, transparent 70%),
+    radial-gradient(120% 90% at 50% 120%, rgba(0, 0, 0, .9) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22440%22%20height%3D%22440%22%3E%3Cdefs%3E%3Cfilter%20id%3D%22glow%22%20x%3D%22-50%25%22%20y%3D%22-50%25%22%20width%3D%22200%25%22%20height%3D%22200%25%22%3E%3CfeGaussianBlur%20in%3D%22SourceGraphic%22%20stdDeviation%3D%223%22%20result%3D%22b%22%2F%3E%3CfeComponentTransfer%20in%3D%22b%22%20result%3D%22halo%22%3E%3CfeFuncA%20type%3D%22linear%22%20slope%3D%222.6%22%2F%3E%3C%2FfeComponentTransfer%3E%3CfeMerge%3E%3CfeMergeNode%20in%3D%22halo%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Cg%20filter%3D%22url(%23glow)%22%20fill%3D%22none%22%20stroke%3D%22rgb(90%2C240%2C185)%22%20stroke-width%3D%220.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20stroke-opacity%3D%220.2%22%20transform%3D%22translate(40%2050)%20rotate(-12)%20scale(3.2)%22%20d%3D%22M2%200V16M2%203L9%200M2%208L9%205%22%2F%3E%3Cpath%20stroke-opacity%3D%220.14%22%20transform%3D%22translate(250%2030)%20rotate(8)%20scale(3.2)%22%20d%3D%22M5%2016V0M5%206L1%201M5%206L9%201%22%2F%3E%3Cpath%20stroke-opacity%3D%220.2%22%20transform%3D%22translate(150%20190)%20rotate(18)%20scale(3.2)%22%20d%3D%22M1%200V16M9%200V16M1%200L9%2016M9%200L1%2016%22%2F%3E%3Cpath%20stroke-opacity%3D%220.08%22%20transform%3D%22translate(330%20230)%20rotate(-6)%20scale(3.2)%22%20d%3D%22M2%2016V0L8%204L2%208L8%2016%22%2F%3E%3Cpath%20stroke-opacity%3D%220.2%22%20transform%3D%22translate(60%20300)%20rotate(4)%20scale(3.2)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20stroke-opacity%3D%220.2%22%20transform%3D%22translate(260%20360)%20rotate(-15)%20scale(3.2)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%2F%3E%3Cpath%20stroke-opacity%3D%220.2%22%20transform%3D%22translate(380%20110)%20rotate(12)%20scale(3.2)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"),
+    var(--smoke) 0 0 / 700px 700px,
+    linear-gradient(180deg, #06110e 0%, #040807 60%, #020403 100%);
+  --home-card: rgba(8, 14, 12, .9);
+  --title-glow: rgba(63, 224, 165, .45);
+  --vignette: #000000e6;
+  --rdie-front-c: #14241f; --rdie-side-c: #0d1814; --rdie-low-c: #07100c; --rdie-text: #eafff5;
+  --font-display: 'Cormorant Garamond', 'Cinzel', serif;
+  --font-body: 'Spectral', Georgia, serif;
+  --font-caps: 'Cormorant SC', 'Cinzel', serif;
+  --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.9%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200.55%200%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%20opacity%3D%220.18%22%2F%3E%3C%2Fsvg%3E");
   color-scheme: dark;
 }
-:root[data-game="coc7"] body { font-weight: 500; font-variant-numeric: lining-nums; } /* Cormorant est fine : un peu plus de corps pour la lisibilité */
+:root[data-game="coc7"] body { font-variant-numeric: lining-nums; font-size: 19px; }
 :root[data-game="coc7"] .rdie-num { font-variant-numeric: lining-nums; } /* le raccourci « font » des dés réinitialise les chiffres */
-:root[data-game="coc7"] h1 { color: var(--text); letter-spacing: .06em; }
-/* Runes sous le titre de l'accueil (« Cthulhu » en futhark) et devant celui de la fiche */
+:root[data-game="coc7"] .hint { color: var(--muted); font-size: 16px; }
+:root[data-game="coc7"] ::placeholder { color: #7f948c; opacity: 1; }
+/* Titres : serif émeraude lumineux, comme les titres de chapitre du jeu */
+:root[data-game="coc7"] :is(h1, h2) { font-weight: 600; color: var(--accent); text-shadow: 0 0 14px rgba(63, 224, 165, .35); letter-spacing: .01em; }
 :root[data-game="coc7"] .home-card h1::after {
   content: ''; display: block; width: 154px; height: 20px; margin-top: 6px;
-  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22154%22%20height%3D%2220%22%20viewBox%3D%220%200%20154%2020%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(6%202)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(28%202)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(50%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(72%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(94%202)%22%20d%3D%22M3%2016V0L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(116%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(138%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") left center / contain no-repeat;
-  filter: drop-shadow(0 0 5px rgba(111, 211, 230, .8)); opacity: .8;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22154%22%20height%3D%2220%22%20viewBox%3D%220%200%20154%2020%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22rgb(63%2C224%2C165)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20transform%3D%22translate(6%202)%22%20d%3D%22M8%200L2%208L8%2016%22%2F%3E%3Cpath%20transform%3D%22translate(28%202)%22%20d%3D%22M5%2016V0M1%205L5%200L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(50%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(72%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3Cpath%20transform%3D%22translate(94%202)%22%20d%3D%22M3%2016V0L9%205%22%2F%3E%3Cpath%20transform%3D%22translate(116%202)%22%20d%3D%22M2%200V16M8%200V16M2%205L8%2010%22%2F%3E%3Cpath%20transform%3D%22translate(138%202)%22%20d%3D%22M2%2016V0L9%205V16%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") left center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(63, 224, 165, .8)); opacity: .8;
 }
 :root[data-game="coc7"] .sheet-head h2::before {
   content: ''; display: inline-block; width: 12px; height: 20px; margin-right: 10px; vertical-align: -2px;
-  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2220%22%20viewBox%3D%220%200%2012%2020%22%3E%3Cpath%20transform%3D%22translate(1%202)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%20fill%3D%22none%22%20stroke%3D%22rgb(111%2C211%2C230)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; filter: drop-shadow(0 0 4px rgba(111, 211, 230, .8));
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2220%22%20viewBox%3D%220%200%2012%2020%22%3E%3Cpath%20transform%3D%22translate(1%202)%22%20d%3D%22M1%2016L8%206L5%201L2%206L9%2016%22%20fill%3D%22none%22%20stroke%3D%22rgb(63%2C224%2C165)%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; filter: drop-shadow(0 0 4px rgba(63, 224, 165, .8));
 }
-/* Dalles de pierre taillée : arêtes biseautées, frises de runes gravées en haut et en bas */
+/* Cadres : panneaux noirs translucides, double filet fin, équerres à losange dans les coins, frises de runes */
 :root[data-game="coc7"] :is(.home-card, .sheet-card, .confirm-card, .rename-card, #panel, #dicePanel) {
-  border-color: #161d20;
-  border-radius: 3px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -2px 0 rgba(0, 0, 0, .35),
-    inset 0 0 0 1px rgba(111, 211, 230, .06), inset 0 0 40px rgba(0, 0, 0, .35),
-    0 18px 50px rgba(0, 0, 0, .6);
-  background-image: var(--rune-band), var(--rune-band), var(--grain);
-  background-position: left 10px top 6px, right 10px bottom 6px, 0 0;
-  background-size: auto 11px, auto 11px, auto;
-  background-repeat: repeat-x, repeat-x, repeat;
+  border: 1px solid #1d3a33; border-radius: 2px;
+  box-shadow: inset 0 0 0 4px rgba(4, 8, 7, .9), inset 0 0 0 5px rgba(63, 224, 165, .16), 0 20px 60px rgba(0, 0, 0, .75);
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2222%22%20height%3D%2222%22%20viewBox%3D%220%200%2022%2022%22%3E%3Cpath%20d%3D%22M1%2021V1H21%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.75%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M5%209l4-4%204%204-4%204z%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.6%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E"), url("data:image/svg+xml,%3Csvg%20style%3D%22transform%3AscaleX(-1)%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2222%22%20height%3D%2222%22%20viewBox%3D%220%200%2022%2022%22%3E%3Cpath%20d%3D%22M1%2021V1H21%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.75%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M5%209l4-4%204%204-4%204z%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.6%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E"), url("data:image/svg+xml,%3Csvg%20style%3D%22transform%3AscaleY(-1)%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2222%22%20height%3D%2222%22%20viewBox%3D%220%200%2022%2022%22%3E%3Cpath%20d%3D%22M1%2021V1H21%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.75%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M5%209l4-4%204%204-4%204z%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.6%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E"), url("data:image/svg+xml,%3Csvg%20style%3D%22transform%3Ascale(-1)%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2222%22%20height%3D%2222%22%20viewBox%3D%220%200%2022%2022%22%3E%3Cpath%20d%3D%22M1%2021V1H21%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.75%22%20stroke-width%3D%221.2%22%2F%3E%3Cpath%20d%3D%22M5%209l4-4%204%204-4%204z%22%20fill%3D%22none%22%20stroke%3D%22%233fe0a5%22%20stroke-opacity%3D%22.6%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E"),
+    var(--rune-band), var(--rune-band),
+    radial-gradient(120% 60% at 50% 0%, rgba(40, 150, 120, .10), transparent 70%),
+    var(--grain);
+  background-position: left 3px top 3px, right 3px top 3px, left 3px bottom 3px, right 3px bottom 3px, left 30px top 7px, right 30px bottom 7px, 0 0, 0 0;
+  background-size: 22px 22px, 22px 22px, 22px 22px, 22px 22px, auto 10px, auto 10px, auto, auto;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat-x, repeat-x, no-repeat, repeat;
 }
-/* place pour la frise du haut dans les panneaux latéraux */
-:root[data-game="coc7"] :is(#panel, #dicePanel) { padding-top: 16px; }
+:root[data-game="coc7"] :is(#panel, #dicePanel) { padding-top: 18px; background-color: rgba(8, 14, 12, .94); }
+/* Titres de section : capitales espacées, filet lumineux qui s'estompe, losange au centre */
+:root[data-game="coc7"] :is(#panel, #dicePanel) h3 {
+  font-family: var(--font-caps); font-size: 18px; letter-spacing: .16em; color: var(--accent);
+  text-shadow: 0 0 10px rgba(63, 224, 165, .45);
+  padding-bottom: 12px; background: var(--divider) center bottom / 100% 12px no-repeat;
+}
+:root[data-game="coc7"] :is(#panel, #dicePanel) section { border-bottom-color: rgba(63, 224, 165, .12); }
+:root[data-game="coc7"] :is(.stat-track-label, #panel h4, .sheet-col h4) { font-family: var(--font-caps); letter-spacing: .12em; color: #7fe9c4; }
+/* Barre du haut : noir, onglets en capitales espacées, filet émeraude lumineux qui s'estompe */
 :root[data-game="coc7"] #topbar {
-  border-bottom: 1px solid #161d20;
-  box-shadow: inset 0 -1px 0 rgba(111, 211, 230, .18), 0 6px 18px rgba(0, 0, 0, .5);
+  background: linear-gradient(180deg, #07100d, #040807);
+  border-bottom: 0; padding-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .7);
 }
-:root[data-game="coc7"] button.primary {
-  background: linear-gradient(180deg, #8fe3f0, #3fa9bd); border-color: #2c7f90;
-  box-shadow: 0 0 14px rgba(111, 211, 230, .35);
+:root[data-game="coc7"] #topbar::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 4px; height: 10px; pointer-events: none;
+  background: var(--rune-band) left 12px center / auto 10px repeat-x;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
 }
-:root[data-game="coc7"] :is(input, select, textarea) { background: #1f272a; border-color: #161d20; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .5); }
+:root[data-game="coc7"] #topbar::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(63, 224, 165, .8) 30%, rgba(63, 224, 165, .8) 70%, transparent);
+  box-shadow: 0 0 8px rgba(63, 224, 165, .6);
+}
+:root[data-game="coc7"] #roomLabel { font-family: var(--font-display); font-weight: 600; font-size: 22px; color: var(--accent); text-shadow: 0 0 12px rgba(63, 224, 165, .4); }
+:root[data-game="coc7"] #topbar > button { font-family: var(--font-caps); letter-spacing: .1em; background: transparent; border-color: transparent; }
+:root[data-game="coc7"] #topbar > button:hover { border-color: transparent; color: var(--accent); text-shadow: 0 0 10px rgba(63, 224, 165, .6); }
+/* Boutons et champs : boîtes sombres à filet fin ; survol et sélection en émeraude lumineux */
+:root[data-game="coc7"] button { background: #0d1916; border-color: #24403a; }
+:root[data-game="coc7"] button:hover { border-color: var(--accent); box-shadow: 0 0 10px rgba(63, 224, 165, .25); }
+:root[data-game="coc7"] :is(button.primary, .seg button.on, .draw-btn.on) {
+  background: rgba(63, 224, 165, .12); color: #9ff5d3; border-color: var(--accent);
+  text-shadow: 0 0 8px rgba(63, 224, 165, .6); box-shadow: inset 0 0 12px rgba(63, 224, 165, .18), 0 0 10px rgba(63, 224, 165, .2);
+}
+:root[data-game="coc7"] :is(input, select, textarea) { background: #060d0b; border-color: #22392f; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .6); }
 :root[data-game="coc7"] :is(input, select, .dr-total, .dr-detail, .rb-result, .quick-value, .sheet-pct-thresholds, .badge) { font-variant-numeric: lining-nums tabular-nums; }
-/* lueur des abysses sur les titres de section */
-:root[data-game="coc7"] :is(#panel, #dicePanel) h3 { color: var(--accent); text-shadow: 0 0 8px rgba(111, 211, 230, .35); }
+/* Dés : le d100, dé du jeu, encadré comme la compétence sélectionnée */
+:root[data-game="coc7"] #dicePanel .dice-grid .die[data-sides="100"] { border-color: var(--accent); color: #9ff5d3; box-shadow: inset 0 0 10px rgba(63, 224, 165, .15), 0 0 8px rgba(63, 224, 165, .25); }
+/* Valeurs chiffrées (compteurs du panneau Personnage) : cartouche sombre, comme les « 3/5 » du jeu */
+:root[data-game="coc7"] .quick-value { background: #060d0b; border: 1px solid #24403a; border-radius: 2px; padding: 0 8px; }
+/* SAN qui baisse : la valeur vire de l'émeraude au violet de la folie */
+:root[data-game="coc7"] [data-key="san"] .quick-value {
+  color: color-mix(in srgb, #8ff0c6 calc(var(--fill, 1) * 100%), var(--madness));
+  border-color: color-mix(in srgb, #24403a calc(var(--fill, 1) * 100%), var(--madness));
+  text-shadow: 0 0 8px color-mix(in srgb, rgba(63, 224, 165, .5) calc(var(--fill, 1) * 100%), rgba(155, 111, 224, .9));
+}
+/* Historique : entrées sombres à filet, comme les cartes de jet */
+:root[data-game="coc7"] #diceLog li { background: #0a1411; border: 1px solid #1c332d; border-radius: 2px; }
+:root[data-game="coc7"] #initiativeList li { background: #0a1411; border-color: #1c332d; }
+:root[data-game="coc7"] #initiativeList li.sel { outline: 0; border-color: var(--accent); box-shadow: 0 0 10px rgba(63, 224, 165, .35); }
+/* Plateau : noir d'encre, volutes de fumée sarcelle (calque fixe, sans animation ni fusion) */
+.stage-fx { display: none; }
+:root[data-game="coc7"] .stage-fx {
+  display: block; position: absolute; inset: 0; pointer-events: none; contain: strict;
+  background: radial-gradient(70% 60% at 50% 45%, rgba(40, 150, 120, .10), transparent 75%), var(--smoke) 0 0 / 900px 900px;
+  opacity: .4;
+}
+/* Bannière de jet : cartouche noir à double filet ; le niveau de réussite s'allume */
+:root[data-game="coc7"] .roll-banner {
+  border: 1px solid #1d3a33; border-radius: 2px;
+  background: linear-gradient(180deg, rgba(10, 20, 17, .96), rgba(4, 8, 7, .96));
+  box-shadow: inset 0 0 0 4px rgba(4, 8, 7, .9), inset 0 0 0 5px rgba(63, 224, 165, .2), 0 14px 34px rgba(0, 0, 0, .75);
+}
+:root[data-game="coc7"] .rb-crit-badge { animation: none; font-family: var(--font-caps); letter-spacing: .12em; font-size: 16px; }
+:root[data-game="coc7"] .rb-tone-ok { color: #6ff0bd; text-shadow: 0 0 10px rgba(63, 224, 165, .8); }
+:root[data-game="coc7"] .rb-tone-ok[data-tier="extreme"] { color: #b9ffe0; text-shadow: 0 0 14px rgba(63, 224, 165, 1); }
+:root[data-game="coc7"] .rb-tone-crit { color: #f3d67a; text-shadow: 0 0 14px rgba(226, 191, 90, .95); }
+:root[data-game="coc7"] .rb-tone-fail { color: #8a9a94; text-shadow: none; }
+:root[data-game="coc7"] :is(.rb-tone-botch, .rb-botch-badge) { color: #c9a8ff; text-shadow: 0 0 12px rgba(155, 111, 224, .95); }
+:root[data-game="coc7"] .roll-banner.botch { border-color: var(--madness); box-shadow: 0 0 24px rgba(155, 111, 224, .45), 0 14px 34px rgba(0, 0, 0, .75); }
+:root[data-game="coc7"] .roll-banner.crit { border-color: var(--crit); }
+/* Fiche : écran de personnage du jeu — compétences en cartouches, pourcentages en émeraude */
+:root[data-game="coc7"] #sheetPanel .sheet-card { background-color: rgba(6, 11, 10, .97); background-size: 22px 22px, 22px 22px, 22px 22px, 22px 22px, auto 10px, 0 0, auto, auto; } /* pas de frise en bas : la fiche défile par-dessus */
+:root[data-game="coc7"] #sheetPanel .sheet-body h3 { font-family: var(--font-caps); letter-spacing: .14em; color: var(--accent); text-shadow: 0 0 10px rgba(63, 224, 165, .4); padding-bottom: 10px; background: var(--divider) left bottom / 320px 12px no-repeat; }
+:root[data-game="coc7"] #sheetPanel .sheet-pct-row input { text-align: center; color: #9ff5d3; border-color: #24403a; }
+:root[data-game="coc7"] #sheetPanel .sheet-pct-row input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(63, 224, 165, .35); }
+:root[data-game="coc7"] #sheetPanel .sheet-pct-thresholds { color: #7f948c; }
 
 /* ---------- Choix du jeu (accueil) ---------- */
 .game-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
