@@ -424,13 +424,13 @@ function showMindWhisper() {
 }
 
 /*
- * Yeux du palier 3 : un œil (ou une paire) à pupille fendue, violet, vert ou rouge, qui s'ouvre
- * quelque part au hasard, cligne, puis s'efface. Même principe que les murmures : fondu d'opacité,
- * clignement par transform (rien à redessiner), une apparition à la fois.
+ * Yeux du palier 3 : un œil (ou une paire) à pupille fendue, violet, vert ou rouge, flou et à peine
+ * visible, qui apparaît quelque part au hasard puis s'efface. Même principe que les murmures : fondu
+ * d'opacité (rien à redessiner), une apparition à la fois.
  */
 const MIND_EYE_COLORS = ['#9b6fe0', '#3fe0a5', '#d0556a'];
 const MIND_EYE_FADE_MS = 3000; // transition CSS de .mind-eyes
-const MIND_EYE_HOLD_MS = 2600; // le clignement tombe au milieu
+const MIND_EYE_HOLD_MS = 2600;
 let mindEyeTimer = 0;
 let mindEyeId = 0;
 /** Œil en SVG (couleur : currentColor), iris et pupille découpés dans la forme en amande. */
@@ -452,7 +452,7 @@ function mindEyeSvg() {
 }
 function scheduleMindEyes() {
   clearTimeout(mindEyeTimer);
-  $('mindEyes').classList.remove('on', 'blink');
+  $('mindEyes').classList.remove('on');
   if (document.body.dataset.mind !== '3' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   mindEyeTimer = setTimeout(showMindEyes, 6000 + Math.random() * 10000);
 }
@@ -465,12 +465,9 @@ function showMindEyes() {
   box.style.top = `${10 + Math.random() * 75}%`;
   box.classList.add('on');
   mindEyeTimer = setTimeout(() => {
-    box.classList.add('blink');
-    mindEyeTimer = setTimeout(() => {
-      box.classList.remove('on', 'blink');
-      mindEyeTimer = setTimeout(scheduleMindEyes, MIND_EYE_FADE_MS);
-    }, MIND_EYE_HOLD_MS / 2);
-  }, MIND_EYE_FADE_MS + MIND_EYE_HOLD_MS / 2);
+    box.classList.remove('on');
+    mindEyeTimer = setTimeout(scheduleMindEyes, MIND_EYE_FADE_MS);
+  }, MIND_EYE_FADE_MS + MIND_EYE_HOLD_MS);
 }
 
 function sendSheetPatch(patch) {
