@@ -512,10 +512,13 @@ function drawMindVeins() {
   }
   const paths = (scale) => branches.map((b) => `<path d="${b.d}" stroke-width="${(b.width * scale).toFixed(2)}"/>`).join('');
   box.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <defs><filter id="mindVeinGlow" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+    <defs>
+      <filter id="mindVeinGlow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="7"/></filter>
+      <filter id="mindVeinSoft" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="1.6"/></filter>
+    </defs>
     <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <g stroke="rgb(170, 12, 24)" stroke-opacity=".35" filter="url(#mindVeinGlow)">${paths(3)}</g>
-      <g stroke="rgb(120, 6, 16)" stroke-opacity=".75">${paths(1)}</g>
+      <g stroke="rgb(170, 12, 24)" stroke-opacity=".3" filter="url(#mindVeinGlow)">${paths(5)}</g>
+      <g stroke="rgb(130, 8, 18)" stroke-opacity=".5" filter="url(#mindVeinSoft)">${paths(1.2)}</g>
     </g>
   </svg>`;
 }

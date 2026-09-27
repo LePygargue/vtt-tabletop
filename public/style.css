@@ -1618,7 +1618,7 @@ kbd {
 .mind-veins { display: none; }
 :root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-veins {
   display: block; position: fixed; inset: 0; z-index: 11; pointer-events: none; overflow: hidden;
-  opacity: calc(.35 + var(--mind) * .4);
+  opacity: calc(.2 + var(--mind) * .25);
 }
 .mind-veins svg { display: block; }
 /* yeux (palier 3) : placés au hasard par js/sheet.js ; flous, à peine visibles, fondu d'opacité */
