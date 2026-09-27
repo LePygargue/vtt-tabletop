@@ -19,6 +19,7 @@ function buildGauges() {
     wrap.style.setProperty('--gc', `var(${g.color})`);
     wrap.appendChild(el('span', 'danger-label', g.label));
     wrap.appendChild(el('div', 'danger-meter')).id = 'gaugeMeter_' + g.key;
+    for (const url of [g.sound?.up, g.sound?.down, g.sound?.max].filter(Boolean)) gaugeSound(url); // préchargé : pas de délai au premier changement
   }
   root.hidden = !game.gauges.length;
 }
@@ -39,8 +40,10 @@ function renderGauge(key, prevLevel) {
   const def = gaugeDef(key);
   const meter = $('gaugeMeter_' + key);
   if (!def || !meter) return;
-  const level = gauges[key] || 0;
+  const level = gaugeHeld.has(key) ? gaugeHeld.get(key) : gauges[key] || 0;
   if (prevLevel == null) prevLevel = level;
+  // jauge au maximum (niveau affiché) : ambiance constante du thème (Danger 5 de Hunter)
+  document.body.classList.toggle('gauge-max-' + key, level >= def.max);
   meter.textContent = '';
   const gm = isGM();
   for (let i = 1; i <= def.max; i++) {
@@ -82,17 +85,87 @@ function gaugeDetail(def, level, up) {
   if (!up && level === 0 && a.atZero) text += a.atZero;
   return text;
 }
+/**
+ * Sons d'une jauge, si le jeu en prévoit : def.sound.up / def.sound.down, et def.sound.max
+ * (joué dès que la jauge atteint son maximum, avant l'alerte et son son up, voir startGaugeHold).
+ */
+const gaugeSounds = new Map(); // url -> Audio préchargé
+function gaugeSound(url) {
+  let base = gaugeSounds.get(url);
+  if (!base) {
+    base = new Audio(url);
+    base.preload = 'auto';
+    gaugeSounds.set(url, base);
+  }
+  return base;
+}
+/** Joue un son de jauge ; renvoie l'élément audio (pour l'arrêter) ou null. */
+function playSoundUrl(url) {
+  const volume = soundVolume(); // coupé ou réglé dans l'aide (?)
+  if (!url || !volume) return null;
+  const audio = gaugeSound(url).cloneNode(); // plusieurs changements rapprochés : les sons se chevauchent
+  audio.volume = volume;
+  audio.play().catch(() => { /* lecture refusée (aucune interaction avec la page pour l'instant) */ });
+  return audio;
+}
+function playGaugeSound(def, up) {
+  if (def.sound) playSoundUrl(up ? def.sound.up : def.sound.down); // au maximum : par-dessus le son de def.sound.max
+}
+
+/**
+ * Jauge qui atteint son maximum avec un son dédié (Danger 5 de Hunter) : le son part tout de suite,
+ * la barre du haut garde l'ancien niveau, et l'alerte visuelle n'arrive que def.sound.maxDelay ms après.
+ * Un nouveau changement de cette jauge pendant l'attente annule tout (son compris).
+ */
+const gaugeHeld = new Map(); // clé -> niveau affiché pendant l'attente
+const gaugeHolds = new Map(); // clé -> { timer, audio }
+function cancelGaugeHold(kind) {
+  const hold = gaugeHolds.get(kind);
+  if (!hold) return;
+  clearTimeout(hold.timer);
+  if (hold.audio) hold.audio.pause();
+  gaugeHolds.delete(kind);
+  gaugeHeld.delete(kind);
+  renderGauge(kind);
+}
+/** Dès la réception : la barre du haut garde l'ancien niveau. */
+function beginGaugeHold(kind, prev) {
+  const hold = { timer: 0, audio: null };
+  gaugeHolds.set(kind, hold);
+  gaugeHeld.set(kind, prev);
+  renderGauge(kind);
+  return hold;
+}
+/** Une fois les dés posés (Overreach) : le son part, l'alerte suit après maxDelay. */
+function startGaugeHold(hold, kind, def, prev, level) {
+  if (gaugeHolds.get(kind) !== hold) return; // annulée entre-temps
+  hold.audio = playSoundUrl(def.sound.max);
+  hold.timer = setTimeout(() => {
+    gaugeHolds.delete(kind);
+    gaugeHeld.delete(kind);
+    showGaugeAlert(kind, prev, level);
+  }, def.sound.maxDelay || 0);
+}
+
 /** Moment (performance.now) où les dés d'un jet qui fait monter une jauge sont posés ; renseigné par dice-ui.js. */
 let overreachRevealAt = 0;
 
 /** Appelé à chaque changement de jauge reçu du serveur. */
 function gaugeChanged(kind, prev, level) {
   if (level === prev || !Number.isFinite(level)) return;
+  if (gaugeHolds.has(kind)) {
+    // changement pendant l'attente du maximum : on repart du niveau encore affiché
+    prev = gaugeHeld.get(kind);
+    cancelGaugeHold(kind);
+    if (level === prev) return;
+  }
+  const def = gaugeDef(kind);
+  const hold = def && level > prev && level >= def.max && def.sound && def.sound.max ? beginGaugeHold(kind, prev) : null;
   // Sur un Overreach, le serveur envoie la jauge juste avant le jet : on laisse le message
   // du jet arriver, puis on attend que ses dés soient posés pour ne pas gâcher la surprise.
   setTimeout(() => {
     const wait = level > prev ? Math.max(0, overreachRevealAt - performance.now()) : 0;
-    setTimeout(() => showGaugeAlert(kind, prev, level), wait);
+    setTimeout(() => (hold ? startGaugeHold(hold, kind, def, prev, level) : showGaugeAlert(kind, prev, level)), wait);
   }, 0);
 }
 
@@ -117,6 +190,8 @@ function showGaugeAlert(kind, prev, level) {
   flash.className = '';
   flash.style.setProperty('--gc', `var(${def.color})`);
   replayClass(flash, up ? 'go' : 'go-down');
+  glitchGauge(kind, prev, level);
+  playGaugeSound(def, up);
 
   const root = $('gaugeAlerts');
   const old = root.querySelector('.gauge-alert.' + kind);
@@ -134,6 +209,7 @@ function showGaugeAlert(kind, prev, level) {
   title.className = 'ga-title';
   const titleText = (up ? alert.up : alert.down) || def.label;
   title.textContent = up ? `${titleText} (+${level - prev})` : `${titleText} (−${prev - level})`;
+  title.dataset.text = title.textContent; // copies décalées du titre glitché (thème Hunter)
   const pips = document.createElement('div');
   pips.className = 'ga-pips';
   for (let i = 1; i <= def.max; i++) {
@@ -157,6 +233,6 @@ function showGaugeAlert(kind, prev, level) {
 
   setTimeout(() => {
     card.classList.add('out');
-    setTimeout(() => card.remove(), 400);
+    setTimeout(() => card.remove(), 500);
   }, GAUGE_ALERT_MS);
 }

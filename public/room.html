@@ -14,7 +14,7 @@ try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElem
 </head>
 <body class="room">
 <a class="skip-link" href="#panel">Aller au panneau</a>
-<main id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas><div class="stage-fx" aria-hidden="true"></div></main>
+<main id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas><div class="stage-fx" aria-hidden="true"></div><div class="mind-fx" aria-hidden="true"></div></main>
 
 <section id="prepScreen" aria-labelledby="prepTitle">
   <div class="prep-card">
@@ -157,7 +157,7 @@ try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElem
     <button id="selKick" class="gm danger" data-tip="Retire son jeton et l'empêche de rejoindre à nouveau ce salon (ses fiche/journal sont conservés si tu le réintègres)." hidden>Exclure ce joueur</button>
     <div id="npcProfileEdit" class="gm" hidden>
       <h4>Présentation aux joueurs</h4>
-      <p class="hint">Les joueurs qui voient ce PNJ l'ouvrent en cliquant sur son jeton. Les notes de la fiche rapide restent secrètes.</p>
+      <p class="hint">Les joueurs qui voient ce PNJ l'ouvrent en cliquant sur sa pastille « i » (plateau ou liste des jetons). Les notes de la fiche rapide restent secrètes.</p>
       <div class="npc-portrait-edit">
         <img id="npcPortraitPreview" alt="Portrait actuel" hidden>
         <div class="npc-portrait-actions">
@@ -440,6 +440,14 @@ try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElem
       <button type="button" data-ui-size="1.15" role="radio" aria-checked="false">Grande</button>
       <button type="button" data-ui-size="1.3" role="radio" aria-checked="false">Très grande</button>
     </div>
+    <h3>Son</h3>
+    <div class="sound-settings">
+      <label class="check"><input id="soundMuted" type="checkbox"> Couper le son</label>
+      <label class="sound-volume" for="soundVolume">Volume
+        <input id="soundVolume" type="range" min="0" max="100" step="5" value="60">
+        <output id="soundVolumeOut" for="soundVolume">60 %</output>
+      </label>
+    </div>
     <div class="row confirm-actions">
       <button type="button" id="btnHelpClose" class="primary">Fermer</button>
     </div>
@@ -451,6 +459,7 @@ try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElem
 <script src="/js/state.js"></script>
 <script src="/js/network.js"></script>
 <script src="/js/viewport.js"></script>
+<script src="/js/glitch.js"></script>
 <script src="/js/keyboard.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/help.js"></script>

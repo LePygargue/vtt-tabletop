@@ -171,9 +171,10 @@ function visibleWorldRect(v) {
 /**
  * Couleurs du plateau lues dans le thème du jeu (variables CSS), relues à chaque changement de jeu.
  * Facultatifs : --canvas-grid (couleur du quadrillage), --canvas-felt: 1 (fond en feutrine, grain
- * aléatoire autour de --canvas-bg), --token-rim (liseré extérieur des jetons, ex. laiton).
+ * aléatoire autour de --canvas-bg), --canvas-paper: 1 (plateau transparent : le fond CSS de
+ * .viewport-canvas apparaît dessous), --glitch: 1 (glitchs quand une jauge bouge, voir glitch.js), --token-rim (liseré extérieur des jetons, ex. laiton).
  */
-const themeColors = { bg: '#0a0d0c', fog: '#0d1512', grid: 'rgba(255,255,255,.3)', rim: '', felt: null };
+const themeColors = { bg: '#0a0d0c', fog: '#0d1512', grid: 'rgba(255,255,255,.3)', rim: '', felt: null, paper: false, glitch: false };
 function refreshThemeColors() {
   const css = getComputedStyle(document.documentElement);
   themeColors.bg = css.getPropertyValue('--canvas-bg').trim() || '#0a0d0c';
@@ -181,6 +182,8 @@ function refreshThemeColors() {
   themeColors.grid = css.getPropertyValue('--canvas-grid').trim() || 'rgba(255,255,255,.3)';
   themeColors.rim = css.getPropertyValue('--token-rim').trim();
   themeColors.felt = css.getPropertyValue('--canvas-felt').trim() === '1' ? feltPattern(themeColors.bg) : null;
+  themeColors.paper = css.getPropertyValue('--canvas-paper').trim() === '1';
+  themeColors.glitch = css.getPropertyValue('--glitch').trim() === '1';
   if (typeof viewport !== 'undefined' && viewport) viewport.dirty = true;
 }
 /** Tuile de feutrine : couleur de fond parsemée de fibres claires et sombres (motif répété à l'écran). */
@@ -203,8 +206,11 @@ function drawViewport(v) {
   v.dirty = false;
   const ctx = v.ctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = themeColors.felt || themeColors.bg;
-  ctx.fillRect(0, 0, v.canvas.width, v.canvas.height);
+  if (themeColors.paper) ctx.clearRect(0, 0, v.canvas.width, v.canvas.height);
+  else {
+    ctx.fillStyle = themeColors.felt || themeColors.bg;
+    ctx.fillRect(0, 0, v.canvas.width, v.canvas.height);
+  }
   ctx.setTransform(v.dpr * v.cam.s, 0, 0, v.dpr * v.cam.s, v.dpr * v.cam.x, v.dpr * v.cam.y);
 
   const rect = visibleWorldRect(v);
@@ -284,6 +290,7 @@ function drawViewport(v) {
     ctx.strokeRect(himg.x + himg.width - hs / 2, himg.y + himg.height - hs / 2, hs, hs);
     ctx.restore();
   }
+  if (themeColors.glitch) drawGlitch(v);
 }
 
 function drawToken(v, t) {
@@ -457,6 +464,18 @@ function tokenAt(v, w) {
     if (!isGM() && t.id !== youToken && isFogged(v, t.x, t.y)) continue;
     const r = radiusOf(v, t);
     if ((w.x - t.x) ** 2 + (w.y - t.y) ** 2 <= r * r) return t;
+  }
+  return null;
+}
+/** PNJ dont la pastille « i » (voir drawToken) est sous le point w, pour un joueur. */
+function npcInfoBadgeAt(v, w) {
+  if (isGM()) return null;
+  const list = [...tokens.values()].reverse();
+  for (const t of list) {
+    if (!hasNpcProfile(t) || isFogged(v, t.x, t.y)) continue;
+    const r = radiusOf(v, t);
+    const br = Math.max(Math.max(6, r * 0.3), 12 / v.cam.s); // zone cliquable minimale pour le tactile
+    if ((w.x - (t.x - r * 0.72)) ** 2 + (w.y - (t.y - r * 0.72)) ** 2 <= br * br) return t;
   }
   return null;
 }
@@ -645,15 +664,16 @@ function wireViewportEvents(v) {
         v.dirty = true;
         return;
       }
-      const t = tokenAt(v, w);
+      const info = npcInfoBadgeAt(v, w);
+      const t = info || tokenAt(v, w);
       if (t) {
         selectedId = t.id;
         refreshUI();
-        if (canMove(t)) v.drag = { kind: 'token', id: t.id, dx: w.x - t.x, dy: w.y - t.y, last: 0 };
+        if (!info && canMove(t)) v.drag = { kind: 'token', id: t.id, dx: w.x - t.x, dy: w.y - t.y, last: 0 };
         else {
           v.pan = { sx: e.offsetX, sy: e.offsetY, cx: v.cam.x, cy: v.cam.y };
-          // un clic sans glisser sur un PNJ ouvre sa présentation (voir endPointer)
-          if (hasNpcProfile(t)) v.tap = { id: t.id, x: e.offsetX, y: e.offsetY };
+          // un clic sans glisser sur la pastille « i » ouvre la présentation du PNJ (voir endPointer)
+          if (info) v.tap = { id: t.id, x: e.offsetX, y: e.offsetY };
         }
         v.dirty = true;
         return;
@@ -747,12 +767,13 @@ function wireViewportEvents(v) {
     } else if (!v.pointers.size || e.pointerType === 'mouse') {
       const tools = paintTool(v) || drawActive();
       const handleImg = tools ? null : imageHandleAt(v, w);
+      const info = tools || handleImg ? null : npcInfoBadgeAt(v, w);
       const t = handleImg ? null : tokenAt(v, w);
       const img = !t && isGM() ? handleImg || imageAt(v, w) : null;
       const draggableImg = img && !img.locked;
       const hoverId = !tools && draggableImg ? img.id : null;
       if (hoverId !== v.hoverImageId) { v.hoverImageId = hoverId; v.dirty = true; }
-      v.canvas.style.cursor = tools ? 'crosshair' : handleImg ? 'nwse-resize' : (t && (canMove(t) || hasNpcProfile(t))) || draggableImg ? 'pointer' : 'grab';
+      v.canvas.style.cursor = tools ? 'crosshair' : handleImg ? 'nwse-resize' : info || (t && canMove(t)) || draggableImg ? 'pointer' : 'grab';
     }
   });
   v.canvas.addEventListener('pointerleave', () => {
@@ -853,6 +874,7 @@ function initViewport() {
 
   const loop = (now) => {
     if (v.camAnim) stepCamAnim(v, now);
+    if (themeColors.glitch) glitchTick(v);
     if (v.dirty) drawViewport(v);
     requestAnimationFrame(loop);
   };

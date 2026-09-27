@@ -26,6 +26,28 @@ for (const b of document.querySelectorAll('[data-ui-size]')) {
   });
 }
 
+/* Son du site : coupé ou non, et volume (mémorisés par navigateur) */
+const SOUND_KEY = 'plateau.sound';
+const soundSettings = { muted: false, volume: 60 };
+try { Object.assign(soundSettings, JSON.parse(localStorage.getItem(SOUND_KEY) || '{}')); } catch (e) { /* stockage indisponible */ }
+/** Volume à appliquer aux sons du site, entre 0 et 1 (0 si coupé). */
+function soundVolume() {
+  return soundSettings.muted ? 0 : Math.max(0, Math.min(100, Number(soundSettings.volume) || 0)) / 100;
+}
+function renderSoundSettings() {
+  $('soundMuted').checked = soundSettings.muted;
+  $('soundVolume').value = soundSettings.volume;
+  $('soundVolume').disabled = soundSettings.muted;
+  $('soundVolumeOut').textContent = `${soundSettings.volume} %`;
+}
+function saveSoundSettings() {
+  renderSoundSettings();
+  try { localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings)); } catch (e) { /* réglage non mémorisé */ }
+}
+$('soundMuted').addEventListener('change', (e) => { soundSettings.muted = e.target.checked; saveSoundSettings(); });
+$('soundVolume').addEventListener('input', (e) => { soundSettings.volume = parseInt(e.target.value, 10); saveSoundSettings(); });
+renderSoundSettings();
+
 /** Hauteur réelle (zoom compris) de la barre du haut, pour placer les panneaux dessous. */
 function syncTopbarHeight() {
   document.documentElement.style.setProperty('--topbar-h', $('topbar').getBoundingClientRect().height + 'px');

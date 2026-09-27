@@ -498,6 +498,8 @@ body.is-gm .player-only { display: none !important; }
 .npc-portrait-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .npc-portrait-actions button { padding: 4px 10px; font-size: 16px; }
 .badge.npc-info { background: color-mix(in srgb, var(--gold) 13%, transparent); border-color: var(--gold-line); color: var(--gold); font-size: 14px; }
+button.badge.npc-info { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; line-height: 1; }
+button.badge.npc-info:hover { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 26%, transparent); }
 
 .npc-profile-card {
   position: relative;
@@ -939,6 +941,12 @@ button.danger-solid:hover { border-color: var(--danger-text); }
 /* ---------- Aide et raccourcis (js/help.js) ---------- */
 .help-dialog { width: min(560px, calc(100vw - 32px)); }
 .help-dialog .confirm-card { max-height: calc(100vh - 48px); overflow-y: auto; }
+.sound-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; }
+.sound-settings .check { display: flex; align-items: center; gap: 8px; }
+.sound-volume { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 220px; }
+.sound-volume input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.sound-volume input:disabled { opacity: .45; }
+.sound-volume output { min-width: 4.5ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 .help-dialog h3 { margin: 14px 0 6px; font-size: 16px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
 .shortcuts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
 .shortcuts dt { white-space: nowrap; }
@@ -1107,6 +1115,10 @@ kbd {
   --gold-line: #b8541e;
   --canvas-bg: #0a0908;
   --canvas-fog: #110e0c;
+  --canvas-paper: 1; /* plateau sur le papier photocopié de la fiche (voir .viewport-canvas plus bas) */
+  --glitch: 1; /* glitchs du plateau quand Danger / Désespoir bougent (js/glitch.js) */
+  --glitch-green: #3dff8a;
+  --glitch-yellow: #ffe14a;
   --home-glow: #3a1606;
   --home-bg:
     var(--grain), /* grain de photocopie et lignes de balayage */
@@ -1188,6 +1200,8 @@ kbd {
   color: var(--gauge-danger); border: 2px solid var(--gauge-danger); border-radius: 3px; transform: rotate(-5deg);
   opacity: .85; mix-blend-mode: screen;
 }
+/* Plateau : même papier que la fiche (grain de photocopie, lignes de balayage) */
+:root[data-game="hunter"] .viewport-canvas { background: var(--grain), var(--panel); }
 :root[data-game="hunter"] #topbar { border-bottom: 2px solid var(--accent); box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
 :root[data-game="hunter"] #roomLabel { font-family: var(--font-display); font-weight: 400; letter-spacing: .04em; text-transform: uppercase; }
 :root[data-game="hunter"] button.primary { background: var(--accent); border-color: #ff7a45; color: var(--on-accent); text-transform: uppercase; letter-spacing: .08em; }
@@ -1205,6 +1219,65 @@ kbd {
 :root[data-game="hunter"] .ga-title { font-weight: 400; letter-spacing: .08em; }
 .game-card[data-game="hunter"] strong { font-weight: 400; text-transform: uppercase; letter-spacing: .03em; font-size: 18px; }
 :root[data-game="hunter"] .roll-banner { border-radius: 3px; box-shadow: inset 4px 0 0 var(--accent), 0 10px 28px #000c; }
+/* Glitchs quand une jauge bouge (le plateau lui-même : js/glitch.js) : la carte d'alerte « saute »,
+   son titre se dédouble en couleurs, les crans changés clignotent, le plateau tremble. Baisse : vert / jaune. */
+:root[data-game="hunter"] .gauge-alert { border-radius: 2px; box-shadow: inset 3px 0 0 var(--ga), 0 14px 34px #000c; animation: glitch-alert-in .8s steps(8) both; }
+:root[data-game="hunter"] .gauge-alert.danger { animation: glitch-alert-in .8s steps(8) both, gauge-shake .7s steps(4) .7s; }
+:root[data-game="hunter"] .gauge-alert.maxed { animation: glitch-alert-in .8s steps(8) both, gauge-shake .9s steps(4) .7s 2; }
+:root[data-game="hunter"] .gauge-alert.down { --ga: var(--glitch-green); border-color: var(--ga); animation: glitch-alert-in .8s steps(8) both; }
+:root[data-game="hunter"] .gauge-alert.desperation.down { --ga: var(--glitch-yellow); }
+:root[data-game="hunter"] .gauge-alert.down::before { box-shadow: 0 0 24px var(--ga); }
+:root[data-game="hunter"] .gauge-alert.down :is(.ga-title, .ga-icon) { color: var(--ga); }
+:root[data-game="hunter"] .gauge-alert.out { animation: glitch-alert-out .5s steps(5) forwards; }
+@keyframes glitch-alert-in {
+  0% { opacity: 0; transform: translateX(-18px) skewX(12deg); clip-path: inset(40% 0 45% 0); }
+  50% { opacity: 1; transform: translateX(10px) skewX(-6deg); clip-path: inset(10% 0 20% 0); }
+  100% { opacity: 1; transform: none; clip-path: inset(-40px); }
+}
+@keyframes glitch-alert-out { to { opacity: 0; transform: translateX(14px) skewX(-10deg); clip-path: inset(48% 0 48% 0); } }
+:root[data-game="hunter"] .ga-title { position: relative; }
+:root[data-game="hunter"] .ga-title::before, :root[data-game="hunter"] .ga-title::after {
+  content: attr(data-text); position: absolute; inset: 0; pointer-events: none; opacity: 0;
+}
+:root[data-game="hunter"] .ga-title::before { color: var(--glitch-green); animation: glitch-text-a 1.5s steps(1) both; }
+:root[data-game="hunter"] .ga-title::after { color: var(--accent); animation: glitch-text-b 1.5s steps(1) both; }
+:root[data-game="hunter"] .gauge-alert.desperation .ga-title::after { color: var(--glitch-yellow); }
+:root[data-game="hunter"] .gauge-alert.down .ga-title::before { color: var(--glitch-yellow); }
+:root[data-game="hunter"] .gauge-alert.down .ga-title::after { color: var(--glitch-green); }
+@keyframes glitch-text-a {
+  0% { opacity: 1; transform: translateX(-4px); clip-path: inset(0 0 60% 0); }
+  15% { transform: translateX(5px); clip-path: inset(55% 0 10% 0); }
+  30% { transform: translateX(-2px); clip-path: inset(20% 0 50% 0); }
+  45% { transform: translateX(3px); clip-path: inset(70% 0 0 0); }
+  60% { transform: translateX(-1px); clip-path: inset(10% 0 80% 0); }
+  75%, 100% { opacity: 0; }
+}
+@keyframes glitch-text-b {
+  0% { opacity: 1; transform: translateX(4px); clip-path: inset(50% 0 20% 0); }
+  15% { transform: translateX(-6px); clip-path: inset(0 0 70% 0); }
+  30% { transform: translateX(2px); clip-path: inset(60% 0 5% 0); }
+  45% { transform: translateX(-3px); clip-path: inset(30% 0 40% 0); }
+  60% { transform: translateX(1px); clip-path: inset(85% 0 0 0); }
+  75%, 100% { opacity: 0; }
+}
+:root[data-game="hunter"] :is(.dpip.pip-new, .dpip.pip-lost) { animation: glitch-pip-flick .85s steps(1) calc(var(--k, 0) * .18s) both; }
+:root[data-game="hunter"] :is(.ga-pip.new, .ga-pip.lost) { animation: glitch-pip-flick .85s steps(1) calc(.5s + var(--k, 0) * .2s) both; }
+@keyframes glitch-pip-flick {
+  0% { background-color: var(--glitch-green); transform: translateX(-3px); }
+  20% { background-color: var(--glitch-yellow); transform: translateX(2px); }
+  40% { background-color: var(--gauge-danger); transform: none; opacity: .3; }
+  60% { background-color: var(--glitch-green); opacity: 1; }
+  80% { opacity: .5; }
+}
+#stage.glitch-shake { animation: glitch-shake .7s steps(3); }
+#stage.glitch-shake-hard { animation: glitch-shake-hard 1s steps(3); }
+@keyframes glitch-shake { 0% { transform: translate(6px, -2px); } 25% { transform: translate(-5px, 2px); } 50% { transform: translate(3px, 1px); } 75% { transform: translate(-2px, -1px); } 100% { transform: none; } }
+@keyframes glitch-shake-hard { 0% { transform: translate(12px, -3px) skewX(-2deg); } 20% { transform: translate(-10px, 4px); } 40% { transform: translate(8px, -2px) skewX(1deg); } 60% { transform: translate(-6px, 2px); } 80% { transform: translate(3px, -1px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-game="hunter"] :is(.gauge-alert, .gauge-alert.danger, .gauge-alert.maxed, .gauge-alert.down, .gauge-alert.out) { animation-duration: .01s; }
+  :root[data-game="hunter"] .ga-title::before, :root[data-game="hunter"] .ga-title::after,
+  :root[data-game="hunter"] :is(.dpip.pip-new, .dpip.pip-lost, .ga-pip.new, .ga-pip.lost) { animation: none; }
+}
 
 /* Pathfinder 2e : grimoire d'aventurier — cuir brun sombre, incrustations de cuir vert forêt,
    coutures surpiquées, coins de laiton, sang-de-bœuf */
@@ -1504,6 +1577,89 @@ kbd {
   display: block; position: absolute; inset: 0; pointer-events: none; contain: strict;
   background: radial-gradient(70% 60% at 50% 45%, rgba(40, 150, 120, .10), transparent 75%), var(--smoke) 0 0 / 900px 900px;
   opacity: .4;
+}
+/* Santé mentale basse (L'Appel de Cthulhu, par joueur : js/sheet.js updateMindFx). --mind va de 0
+   (SAN ≥ 80 % de la SAN de départ) à 1 (SAN 0) ; data-mind donne le palier (1 à 3). Subtil et sans
+   gêne : rien ne capte de clic, le plateau reste lisible. Palier 1 : couleurs ternies, bords violacés
+   qui respirent. Palier 2 : ombres qui rampent depuis les coins. Palier 3 : murmures fugaces. */
+.mind-fx { display: none; }
+:root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) #viewportCanvas {
+  filter: saturate(calc(1 - var(--mind) * .5)) contrast(calc(1 + var(--mind) * .12));
+}
+:root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx {
+  display: block; position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict;
+  background: radial-gradient(ellipse at 50% 50%, transparent calc(72% - var(--mind) * 22%), rgba(52, 18, 84, calc(.3 + var(--mind) * .45)) 100%);
+  animation: mind-breathe calc(10s - var(--mind) * 4s) ease-in-out infinite;
+}
+:root[data-game="coc7"] body:is([data-mind="2"], [data-mind="3"]) .mind-fx::before {
+  content: ''; position: absolute; inset: -10%;
+  background:
+    radial-gradient(28% 22% at 0% 100%, rgba(3, 12, 9, .85), transparent 70%),
+    radial-gradient(24% 30% at 100% 0%, rgba(3, 12, 9, .8), transparent 70%),
+    radial-gradient(20% 26% at 100% 100%, rgba(20, 6, 30, .75), transparent 70%),
+    radial-gradient(22% 18% at 0% 0%, rgba(20, 6, 30, .7), transparent 70%);
+  opacity: calc((var(--mind) - .3) * 1.4);
+  animation: mind-creep 17s ease-in-out infinite alternate;
+}
+:root[data-game="coc7"] body[data-mind="3"] .mind-fx::after {
+  content: "ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn";
+  position: absolute; left: 6%; right: 6%; bottom: 14%; text-align: center;
+  font: italic 400 clamp(16px, 2.2vw, 26px) var(--font-display, serif); letter-spacing: .3em;
+  color: var(--madness); text-shadow: 0 0 12px var(--madness); filter: blur(.6px);
+  opacity: 0; animation: mind-whisper 29s linear infinite;
+}
+:root[data-game="coc7"] body[data-mind="3"] [data-key="san"] .quick-value { animation: mind-san 3.2s ease-in-out infinite; }
+@keyframes mind-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+@keyframes mind-creep {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.06) rotate(.6deg); }
+  100% { transform: scale(1.12) rotate(-.4deg); }
+}
+@keyframes mind-whisper {
+  0%, 41%, 49%, 100% { opacity: 0; transform: translateX(0); }
+  43% { opacity: .22; transform: translateX(-6px); }
+  45% { opacity: .08; }
+  46% { opacity: .28; transform: translateX(4px); }
+  84%, 89% { opacity: 0; }
+  86% { opacity: .18; transform: translateY(-40vh) translateX(10px); }
+  87% { opacity: .05; transform: translateY(-40vh); }
+}
+@keyframes mind-san {
+  0%, 100% { text-shadow: none; }
+  50% { text-shadow: 0 0 10px var(--madness), 1px 0 0 rgba(155, 111, 224, .6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-game="coc7"] body[data-mind] :is(.mind-fx, [data-key="san"] .quick-value), :root[data-game="coc7"] body[data-mind] .mind-fx::before { animation: none; }
+  :root[data-game="coc7"] body[data-mind] .mind-fx::after { display: none; }
+}
+/* Danger 5 (Hunter) : la cellule est traquée. Ambiance constante et discrète, sans rien qui gêne
+   le jeu (aucun clic capté, le plateau reste net) : titres et filets passent de l'orange au rouge,
+   bande de balayage qui descend lentement, filet de la barre du haut et crans du Danger qui pulsent. */
+:root[data-game="hunter"] body.gauge-max-danger { --accent: var(--gauge-danger); --gold-line: #b3121b; --title-glow: rgba(255, 58, 47, .35); }
+:root[data-game="hunter"] body.gauge-max-danger button.primary { border-color: #ff6a5f; }
+:root[data-game="hunter"] body.gauge-max-danger .stage-fx {
+  display: block; position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict;
+}
+:root[data-game="hunter"] body.gauge-max-danger .stage-fx::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -25vh; height: 22vh;
+  background: linear-gradient(180deg, transparent, rgba(255, 58, 47, .05) 45%, rgba(61, 255, 138, .035) 55%, transparent);
+  animation: danger-max-roll 9s linear infinite;
+}
+:root[data-game="hunter"] body.gauge-max-danger #topbar { animation: danger-max-bar 2.4s ease-in-out infinite; }
+:root[data-game="hunter"] body.gauge-max-danger #gaugeWrap_danger .danger-label { color: var(--gauge-danger); }
+:root[data-game="hunter"] body.gauge-max-danger #gaugeWrap_danger .dpip.on:not(.pip-new) { animation: danger-max-pip 1.6s ease-in-out infinite; }
+@keyframes danger-max-roll { from { transform: translateY(0); } to { transform: translateY(150vh); } }
+@keyframes danger-max-bar {
+  0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+  50% { box-shadow: 0 6px 18px rgba(0, 0, 0, .5), 0 2px 14px rgba(255, 58, 47, .45); }
+}
+@keyframes danger-max-pip {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--gauge-danger)); }
+  50% { filter: drop-shadow(0 0 7px var(--gauge-danger)) brightness(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-game="hunter"] body.gauge-max-danger :is(#topbar, #gaugeWrap_danger .dpip.on) { animation: none; }
+  :root[data-game="hunter"] body.gauge-max-danger .stage-fx::before { display: none; }
 }
 /* Bannière de jet : cartouche noir à double filet ; le niveau de réussite s'allume */
 :root[data-game="coc7"] .roll-banner {

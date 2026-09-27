@@ -133,27 +133,38 @@ function renderTokenList() {
       if (online.has(t.id)) st.classList.add('on');
     } else st.textContent = t.hidden ? 'caché' : 'PNJ';
     li.append(dot, nm, st);
+    if (hasNpcProfile(t)) {
+      // côté joueur, la présentation ne s'ouvre qu'en cliquant sur cette pastille
+      const info = document.createElement(isGM() ? 'span' : 'button');
+      info.className = 'badge npc-info';
+      info.appendChild(iconSvg('info'));
+      info.title = isGM() ? 'Présentation disponible' : 'Voir la présentation';
+      if (!isGM()) {
+        info.type = 'button';
+        info.setAttribute('aria-label', `Voir la présentation de ${t.name}`);
+        info.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectedId = t.id;
+          refreshUI();
+          openNpcProfile(t.id);
+        });
+      }
+      li.appendChild(info);
+    }
     for (const c of t.conditions || []) {
       const cond = document.createElement('span');
       cond.className = 'badge cond';
       cond.textContent = c;
       li.appendChild(cond);
     }
-    if (hasNpcProfile(t)) {
-      const info = document.createElement('span');
-      info.className = 'badge npc-info';
-      info.appendChild(iconSvg('info'));
-      info.title = 'Présentation disponible';
-      li.appendChild(info);
-    }
     const selectThis = () => {
       selectedId = t.id;
       animateCamTo(viewport, t.x, t.y);
       refreshUI();
-      if (!isGM()) openNpcProfile(t.id); // sans effet si ce jeton n'a pas de présentation
     };
     li.addEventListener('click', selectThis);
     li.addEventListener('keydown', (e) => {
+      if (e.target !== li) return; // Entrée/Espace sur la pastille « i » : géré par le bouton
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectThis(); }
     });
     ul.appendChild(li);

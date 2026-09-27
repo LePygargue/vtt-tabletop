@@ -1,7 +1,8 @@
 'use strict';
 /**
  * Présentation d'un PNJ (portrait + description) : le MJ la renseigne depuis le panneau
- * du jeton sélectionné ; un joueur qui voit ce PNJ l'ouvre en cliquant sur son jeton.
+ * du jeton sélectionné ; un joueur qui voit ce PNJ l'ouvre en cliquant sur sa pastille « i »
+ * (sur le plateau ou dans la liste des jetons).
  * Contrairement à la fiche PNJ rapide (npc.js, secrète), elle voyage avec le jeton
  * (champs `portrait` et `description`), donc seulement vers ceux qui voient ce PNJ.
  */

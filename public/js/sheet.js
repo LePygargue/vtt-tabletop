@@ -363,6 +363,25 @@ function renderSheetForm() {
   if (!s || !game) return;
   for (const r of sheetRenderers) r(s);
   if (!isGM()) for (const r of quickRenderers) r(s);
+  updateMindFx(s);
+}
+
+/**
+ * Effets visuels propres à chaque joueur quand une valeur de sa fiche s'effondre (SAN de
+ * L'Appel de Cthulhu, game.sheet.mindFx) : rien au-dessus de 80 % de la valeur de référence
+ * (SAN de départ = POU), puis --mind monte de 0 à 1 jusqu'à 0. Le MJ n'a jamais d'effet.
+ */
+function updateMindFx(s) {
+  const fx = game && game.sheet.mindFx;
+  let mind = 0;
+  if (fx && s && !isGM()) {
+    const ref = Number(fx.ref.split('.').reduce((o, k) => (o ? o[k] : undefined), s));
+    const base = ref > 0 ? ref : 50;
+    const ratio = Math.max(0, Math.min(1, (s[fx.key] ?? base) / base));
+    mind = Math.max(0, Math.min(1, (0.8 - ratio) / 0.8));
+  }
+  document.documentElement.style.setProperty('--mind', mind.toFixed(3));
+  document.body.dataset.mind = mind <= 0 ? '0' : mind < 0.34 ? '1' : mind < 0.67 ? '2' : '3';
 }
 
 function sendSheetPatch(patch) {
