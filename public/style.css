@@ -1230,10 +1230,9 @@ kbd {
   --canvas-fog: #111c15;
   --home-glow: #1d3b27;
   --home-bg:
-    radial-gradient(70% 55% at 55% 30%, rgba(90, 160, 110, .10) 0%, transparent 65%),
-    radial-gradient(120% 90% at 50% 120%, rgba(2, 6, 3, .85) 0%, transparent 60%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.01 0 0 0 0 0.04 0 0 0 0 0.02 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)'/%3E%3C/svg%3E"),
-    linear-gradient(160deg, #1d4a30 0%, #123321 45%, #06140c 100%);
+    radial-gradient(60% 55% at 50% 50%, rgba(6, 10, 8, .55) 0%, transparent 100%),
+    linear-gradient(180deg, rgba(4, 8, 6, .35) 0%, rgba(4, 8, 6, .15) 40%, rgba(2, 5, 3, .75) 100%),
+    url("/img/pf2e-home.jpg") center / cover no-repeat fixed;
   --home-card: rgba(58, 36, 22, .97);
   --title-glow: rgba(240, 197, 94, .35);
   --vignette: #0c0704d0;
@@ -1373,21 +1372,6 @@ kbd {
 :root[data-game="pf2e"] #sheetPanel .sheet-card :is(.sheet-head h2, .sheet-body h3) { color: #5c2a14; }
 :root[data-game="pf2e"] #sheetPanel .sheet-body section { border-color: #cdb383; }
 :root[data-game="pf2e"] #sheetPanel .sheet-card .box-grid .box { border-color: #a07f45; }
-
-/* Accueil : l'héroïne détourée à gauche, posée sur le fond vert forêt */
-:root[data-game="pf2e"] :is(body.login, body.lobby)::after {
-  content: ''; position: fixed; left: 2vw; bottom: 0; height: 92vh; aspect-ratio: 1140 / 1243; z-index: 0; pointer-events: none;
-  background: url("/img/pf2e-heroine.webp") center bottom / contain no-repeat;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .65)) drop-shadow(0 0 40px rgba(220, 176, 106, .12));
-}
-:root[data-game="pf2e"] :is(body.login, body.lobby) .home-card { position: relative; z-index: 1; }
-@media (min-width: 901px) and (max-width: 1700px) {
-  :root[data-game="pf2e"] :is(body.login, body.lobby)::after { left: -7vw; }
-}
-@media (max-width: 900px) {
-  :root[data-game="pf2e"] :is(body.login, body.lobby)::after { left: 50%; transform: translateX(-50%); opacity: .3; }
-}
-
 
 /* L'Appel de Cthulhu : d'après le jeu vidéo Call of Cthulhu (2018) — noir d'encre, fumée sarcelle,
    émeraude lumineux, violet de la folie, cadres fins à coins et losanges ; frises de runes conservées. */
