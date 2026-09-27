@@ -8,6 +8,10 @@
  * rien de caché ne peut apparaître. Mouvement réduit : un simple voile coloré.
  */
 const GLITCH_INTENSITY = 1.6; // « violent »
+// Les copies du plateau (image, canaux teintés) sont calculées au plus sur cette largeur puis
+// agrandies : bien moins de pixels à traiter à chaque image, et les bandes déchirées prennent
+// un aspect pixelisé qui va bien avec l'effet.
+const GLITCH_BUF_MAX_W = 800;
 const GLITCH_PAL = {
   'danger-up': { a: '#ff3a2f', b: '#3dff8a', bars: ['#ff3a2f', '#e8541e', '#3dff8a'] },
   'desperation-up': { a: '#ffb13b', b: '#3dff8a', bars: ['#ffe14a', '#ffb13b', '#3dff8a'] },
@@ -17,7 +21,7 @@ const GLITCH_PAL = {
 let glitchPulse = null; // { kind, start, dur, power }
 let glitchSlices = [];
 let glitchSlicesAt = 0;
-let glitchBuf = null; // copie de l'image du plateau, puis deux copies teintées
+let glitchBuf = null; // copie réduite de l'image du plateau, puis deux copies teintées
 let glitchTintA = null;
 let glitchTintB = null;
 
@@ -97,19 +101,22 @@ function drawGlitch(v) {
   const ctx = v.ctx;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  glitchBuf = glitchCanvas(glitchBuf, W, H);
+  const k = Math.min(1, GLITCH_BUF_MAX_W / W); // échelle de la copie réduite
+  const bw = Math.max(1, Math.round(W * k));
+  const bh = Math.max(1, Math.round(H * k));
+  glitchBuf = glitchCanvas(glitchBuf, bw, bh);
   const b = glitchBuf.getContext('2d');
-  b.clearRect(0, 0, W, H);
-  b.drawImage(v.canvas, 0, 0);
+  b.clearRect(0, 0, bw, bh);
+  b.drawImage(v.canvas, 0, 0, bw, bh);
 
   // décalage chromatique
   if (off > 0.4) {
-    glitchTintA = glitchTint(glitchCanvas(glitchTintA, W, H), pal.a);
-    glitchTintB = glitchTint(glitchCanvas(glitchTintB, W, H), pal.b);
+    glitchTintA = glitchTint(glitchCanvas(glitchTintA, bw, bh), pal.a);
+    glitchTintB = glitchTint(glitchCanvas(glitchTintB, bw, bh), pal.b);
     ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = Math.min(0.5, 0.18 + p * 0.5);
-    ctx.drawImage(glitchTintA, -off, 0);
-    ctx.drawImage(glitchTintB, off, 0);
+    ctx.drawImage(glitchTintA, -off, 0, W, H); // agrandis : des fantômes un peu flous, c'est voulu
+    ctx.drawImage(glitchTintB, off, 0, W, H);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -137,10 +144,11 @@ function drawGlitch(v) {
         }
         glitchSlicesAt = now;
       }
+      ctx.imageSmoothingEnabled = false; // bandes agrandies sans lissage : aspect pixelisé
       for (const s of glitchSlices) {
         if (sweep !== null && s.y < sweep) continue;
         ctx.clearRect(0, s.y, W, s.h);
-        ctx.drawImage(glitchBuf, 0, s.y, W, s.h, s.dx, s.y, W, s.h);
+        ctx.drawImage(glitchBuf, 0, s.y * k, bw, Math.max(1, s.h * k), s.dx, s.y, W, s.h);
         if (s.bar) {
           ctx.globalCompositeOperation = 'screen';
           ctx.globalAlpha = 0.25 + p * 0.3;
