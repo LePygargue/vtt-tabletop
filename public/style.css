@@ -1613,6 +1613,14 @@ kbd {
   transition: opacity 3.5s ease-in-out;
 }
 :root[data-game="coc7"] body[data-mind="3"] .mind-whisper.on { opacity: .6; }
+/* nervures rouges (paliers 1 à 3) : dessinées par js/sheet.js, fixes, par-dessus plateau et interface
+   (sous les infobulles), sans capter de clic */
+.mind-veins { display: none; }
+:root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-veins {
+  display: block; position: fixed; inset: 0; z-index: 11; pointer-events: none; overflow: hidden;
+  opacity: calc(.35 + var(--mind) * .4);
+}
+.mind-veins svg { display: block; }
 /* yeux (palier 3) : placés au hasard par js/sheet.js ; flous, à peine visibles, fondu d'opacité */
 .mind-eyes { display: none; }
 :root[data-game="coc7"] body[data-mind="3"] .mind-eyes {

@@ -386,6 +386,7 @@ function updateMindFx(s) {
     document.body.dataset.mind = tier;
     scheduleMindWhisper();
     scheduleMindEyes();
+    drawMindVeins();
   }
 }
 
@@ -468,6 +469,62 @@ function showMindEyes() {
     box.classList.remove('on');
     mindEyeTimer = setTimeout(scheduleMindEyes, MIND_EYE_FADE_MS);
   }, MIND_EYE_FADE_MS + MIND_EYE_HOLD_MS);
+}
+
+/*
+ * Nervures rouges (paliers 1 à 3) : des veines qui poussent depuis les bords de l'écran, par-dessus
+ * le plateau et l'interface, plus nombreuses et plus longues à chaque palier. Tirées au hasard une
+ * fois (changement de palier, redimensionnement) puis figées : aucun coût d'affichage ensuite.
+ */
+const MIND_VEINS = { 1: { roots: 5, reach: 0.12 }, 2: { roots: 9, reach: 0.2 }, 3: { roots: 14, reach: 0.3 } };
+function mindVeinBranch(out, x, y, angle, length, width) {
+  const pts = [[x, y]];
+  let left = length;
+  while (left > 0) {
+    const step = 10 + Math.random() * 12;
+    angle += (Math.random() - 0.5) * 0.7;
+    x += Math.cos(angle) * step;
+    y += Math.sin(angle) * step;
+    pts.push([x, y]);
+    left -= step;
+    // ramification : plus fine, plus courte, partant de côté
+    if (width > 0.6 && Math.random() < 0.12) {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      mindVeinBranch(out, x, y, angle + side * (0.5 + Math.random() * 0.6), left * (0.4 + Math.random() * 0.3), width * 0.6);
+    }
+  }
+  out.push({ d: 'M' + pts.map((p) => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'), width });
+}
+function drawMindVeins() {
+  const box = $('mindVeins');
+  const conf = MIND_VEINS[document.body.dataset.mind];
+  if (!conf || !game || !game.sheet.mindFx) { box.textContent = ''; return; }
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const reach = conf.reach * Math.min(w, h);
+  const branches = [];
+  for (let i = 0; i < conf.roots; i++) {
+    // point de départ sur un bord, direction vers l'intérieur (± 40°)
+    const edge = Math.floor(Math.random() * 4);
+    const t = Math.random();
+    const [x, y, a] = [[t * w, 0, Math.PI / 2], [w, t * h, Math.PI], [t * w, h, -Math.PI / 2], [0, t * h, 0]][edge];
+    mindVeinBranch(branches, x, y, a + (Math.random() - 0.5) * 1.4, reach * (0.6 + Math.random() * 0.8), 2.2 + Math.random() * 1.4);
+  }
+  const paths = (scale) => branches.map((b) => `<path d="${b.d}" stroke-width="${(b.width * scale).toFixed(2)}"/>`).join('');
+  box.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><filter id="mindVeinGlow" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke="rgb(170, 12, 24)" stroke-opacity=".35" filter="url(#mindVeinGlow)">${paths(3)}</g>
+      <g stroke="rgb(120, 6, 16)" stroke-opacity=".75">${paths(1)}</g>
+    </g>
+  </svg>`;
+}
+{
+  let veinsResize = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(veinsResize);
+    veinsResize = setTimeout(drawMindVeins, 300);
+  });
 }
 
 function sendSheetPatch(patch) {
