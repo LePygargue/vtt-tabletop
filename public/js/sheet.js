@@ -388,7 +388,7 @@ function updateMindFx(s) {
   }
 }
 
-/* Murmures du palier 3 : une phrase à un endroit pris au hasard, qui apparaît et s'efface lentement. */
+/* Murmures du palier 3 : une phrase à un endroit pris au hasard, qui apparaît et s'efface lentement, avec un des chuchotements. */
 const MIND_WHISPERS = [
   "ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn",
   'Iä ! Iä ! Cthulhu fhtagn !',
@@ -398,6 +398,7 @@ const MIND_WHISPERS = [
   'Le ciel n’a pas la bonne couleur',
   'Tu l’as vu, toi aussi ?',
 ];
+const MIND_WHISPER_SOUNDS = ['/audio/strange-whisper-1.mp3', '/audio/strange-whisper-2.mp3', '/audio/strange-whisper-3.mp3'];
 const MIND_WHISPER_FADE_MS = 3500; // durée du fondu (transition CSS de .mind-whisper)
 const MIND_WHISPER_HOLD_MS = 1500;
 let mindWhisperTimer = 0;
@@ -405,6 +406,7 @@ function scheduleMindWhisper() {
   clearTimeout(mindWhisperTimer);
   $('mindWhisper').classList.remove('on');
   if (document.body.dataset.mind !== '3' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (const url of MIND_WHISPER_SOUNDS) gaugeSound(url); // préchargés (danger.js)
   mindWhisperTimer = setTimeout(showMindWhisper, 4000 + Math.random() * 8000);
 }
 function showMindWhisper() {
@@ -413,6 +415,7 @@ function showMindWhisper() {
   w.style.left = `${4 + Math.random() * 52}%`; // max-width 40 % : reste dans l'écran
   w.style.top = `${10 + Math.random() * 72}%`;
   w.classList.add('on');
+  playSoundUrl(MIND_WHISPER_SOUNDS[Math.floor(Math.random() * MIND_WHISPER_SOUNDS.length)]); // volume réglé dans l'aide (?)
   mindWhisperTimer = setTimeout(() => {
     w.classList.remove('on');
     mindWhisperTimer = setTimeout(scheduleMindWhisper, MIND_WHISPER_FADE_MS);

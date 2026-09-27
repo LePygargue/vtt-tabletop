@@ -1575,6 +1575,7 @@ kbd {
 .stage-fx { display: none; }
 :root[data-game="coc7"] .stage-fx {
   display: block; position: absolute; inset: 0; pointer-events: none; contain: strict;
+  will-change: transform; /* calque à part : la fumée (texture SVG coûteuse) n'est jamais redessinée */
   background: radial-gradient(70% 60% at 50% 45%, rgba(40, 150, 120, .10), transparent 75%), var(--smoke) 0 0 / 900px 900px;
   opacity: .4;
 }
@@ -1583,22 +1584,17 @@ kbd {
    de clic. Performances : aucun filtre sur le plateau, et les animations ne touchent que l'opacité
    avec des valeurs fixes (jamais de var() dans les @keyframes, sinon le navigateur ne peut plus les
    confier à la carte graphique et redessine tout l'écran à chaque image). L'intensité (--mind) passe
-   par les couleurs des dégradés, calculées une fois. Palier 1 : voile sombre et bords violacés qui
-   respirent. Palier 2 : ombres des coins qui gonflent. Palier 3 : pulsation plus rapide, murmures. */
+   par les couleurs des dégradés, calculées une fois. Palier 1 : voile sombre. Palier 2 : ombres dans
+   les coins. Palier 3 : murmures (texte et son). Rien n'est animé en continu : seul le fondu d'un
+   murmure change l'écran, de temps en temps. */
 .mind-fx { display: none; }
 :root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx {
   display: block; position: absolute; inset: 0; pointer-events: none; overflow: hidden; contain: strict;
   /* voile fixe : le plateau s'assombrit et verdit à mesure que la SAN baisse */
   background: rgba(8, 20, 16, calc(var(--mind) * .35));
 }
-:root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx::before,
 :root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx::after {
-  content: ''; position: absolute; inset: 0; will-change: opacity;
-}
-/* bords violacés qui respirent */
-:root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx::before {
-  background: radial-gradient(ellipse at 50% 50%, transparent calc(62% - var(--mind) * 22%), rgba(70, 24, 110, calc(.45 + var(--mind) * .45)) 100%);
-  animation: mind-breathe 7s ease-in-out infinite;
+  content: ''; position: absolute; inset: 0;
 }
 /* ombres des coins (palier 2 et plus) */
 :root[data-game="coc7"] body:is([data-mind="2"], [data-mind="3"]) .mind-fx::after {
@@ -1607,10 +1603,7 @@ kbd {
     radial-gradient(34% 40% at 100% 0%, rgba(2, 8, 6, calc(var(--mind) * .9)), transparent 72%),
     radial-gradient(30% 36% at 100% 100%, rgba(26, 6, 40, calc(var(--mind) * .9)), transparent 72%),
     radial-gradient(32% 28% at 0% 0%, rgba(26, 6, 40, calc(var(--mind) * .85)), transparent 72%);
-  animation: mind-breathe 11s ease-in-out infinite;
 }
-:root[data-game="coc7"] body[data-mind="3"] .mind-fx::before { animation-duration: 3.5s; }
-:root[data-game="coc7"] body[data-mind="3"] .mind-fx::after { animation-duration: 6s; }
 /* murmures (palier 3) : placés au hasard par js/sheet.js, fondu lent par transition d'opacité */
 .mind-whisper { display: none; }
 :root[data-game="coc7"] body[data-mind="3"] .mind-whisper {
@@ -1621,10 +1614,7 @@ kbd {
 }
 :root[data-game="coc7"] body[data-mind="3"] .mind-whisper.on { opacity: .6; }
 :root[data-game="coc7"] body[data-mind="3"] [data-key="san"] .quick-value { color: var(--madness); }
-@keyframes mind-breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  :root[data-game="coc7"] body[data-mind] .mind-fx::before,
-  :root[data-game="coc7"] body[data-mind] .mind-fx::after { animation: none; }
   :root[data-game="coc7"] body[data-mind] .mind-whisper { display: none; }
 }
 /* Danger 5 (Hunter) : la cellule est traquée. Ambiance constante et discrète, sans rien qui gêne
