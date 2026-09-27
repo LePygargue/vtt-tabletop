@@ -1613,9 +1613,21 @@ kbd {
   transition: opacity 3.5s ease-in-out;
 }
 :root[data-game="coc7"] body[data-mind="3"] .mind-whisper.on { opacity: .6; }
+/* yeux (palier 3) : placés au hasard par js/sheet.js ; fondu d'opacité, clignement en transform */
+.mind-eyes { display: none; }
+:root[data-game="coc7"] body[data-mind="3"] .mind-eyes {
+  display: flex; gap: calc(var(--eye-w, 70px) * .35); position: absolute; pointer-events: none;
+  transform: translate(-50%, -50%); opacity: 0; will-change: opacity;
+  filter: drop-shadow(0 0 8px currentColor);
+  transition: opacity 3s ease-in-out;
+}
+:root[data-game="coc7"] body[data-mind="3"] .mind-eyes.on { opacity: .8; }
+.mind-eye { display: block; width: var(--eye-w, 70px); height: auto; will-change: transform; }
+.mind-eyes.blink .mind-eye { animation: mind-eye-blink .45s ease-in-out; }
+@keyframes mind-eye-blink { 0%, 100% { transform: scaleY(1); } 45%, 55% { transform: scaleY(.06); } }
 :root[data-game="coc7"] body[data-mind="3"] [data-key="san"] .quick-value { color: var(--madness); }
 @media (prefers-reduced-motion: reduce) {
-  :root[data-game="coc7"] body[data-mind] .mind-whisper { display: none; }
+  :root[data-game="coc7"] body[data-mind] :is(.mind-whisper, .mind-eyes) { display: none; }
 }
 /* Danger 5 (Hunter) : la cellule est traquée. Ambiance constante et discrète, sans rien qui gêne
    le jeu (aucun clic capté, le plateau reste net) : titres et filets passent de l'orange au rouge,

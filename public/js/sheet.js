@@ -385,6 +385,7 @@ function updateMindFx(s) {
   if (document.body.dataset.mind !== tier) {
     document.body.dataset.mind = tier;
     scheduleMindWhisper();
+    scheduleMindEyes();
   }
 }
 
@@ -420,6 +421,56 @@ function showMindWhisper() {
     w.classList.remove('on');
     mindWhisperTimer = setTimeout(scheduleMindWhisper, MIND_WHISPER_FADE_MS);
   }, MIND_WHISPER_FADE_MS + MIND_WHISPER_HOLD_MS);
+}
+
+/*
+ * Yeux du palier 3 : un œil (ou une paire) à pupille fendue, violet, vert ou rouge, qui s'ouvre
+ * quelque part au hasard, cligne, puis s'efface. Même principe que les murmures : fondu d'opacité,
+ * clignement par transform (rien à redessiner), une apparition à la fois.
+ */
+const MIND_EYE_COLORS = ['#9b6fe0', '#3fe0a5', '#d0556a'];
+const MIND_EYE_FADE_MS = 3000; // transition CSS de .mind-eyes
+const MIND_EYE_HOLD_MS = 2600; // le clignement tombe au milieu
+let mindEyeTimer = 0;
+let mindEyeId = 0;
+/** Œil en SVG (couleur : currentColor), iris et pupille découpés dans la forme en amande. */
+function mindEyeSvg() {
+  const id = 'mindEyeClip' + ++mindEyeId;
+  const lookX = (Math.random() - 0.5) * 10; // regard un peu de côté
+  return `<svg class="mind-eye" viewBox="0 0 60 40" width="60" height="40">
+    <defs><clipPath id="${id}"><path d="M3 20 Q30 -2 57 20 Q30 42 3 20 Z"/></clipPath></defs>
+    <path d="M3 20 Q30 -2 57 20 Q30 42 3 20 Z" fill="#050806"/>
+    <g clip-path="url(#${id})">
+      <circle cx="${30 + lookX}" cy="20" r="11" fill="currentColor"/>
+      <circle cx="${30 + lookX}" cy="20" r="11" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3"/>
+      <circle cx="${30 + lookX}" cy="20" r="6" fill="#000" fill-opacity=".25"/>
+      <ellipse cx="${30 + lookX}" cy="20" rx="2" ry="8.5" fill="#000"/>
+      <circle cx="${27 + lookX}" cy="16" r="1.6" fill="#fff" fill-opacity=".75"/>
+    </g>
+    <path d="M3 20 Q30 -2 57 20 Q30 42 3 20 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-opacity=".8"/>
+  </svg>`;
+}
+function scheduleMindEyes() {
+  clearTimeout(mindEyeTimer);
+  $('mindEyes').classList.remove('on', 'blink');
+  if (document.body.dataset.mind !== '3' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  mindEyeTimer = setTimeout(showMindEyes, 6000 + Math.random() * 10000);
+}
+function showMindEyes() {
+  const box = $('mindEyes');
+  box.innerHTML = Math.random() < 0.5 ? mindEyeSvg() : mindEyeSvg() + mindEyeSvg(); // un œil ou une paire
+  box.style.color = MIND_EYE_COLORS[Math.floor(Math.random() * MIND_EYE_COLORS.length)];
+  box.style.setProperty('--eye-w', `${50 + Math.random() * 60}px`);
+  box.style.left = `${4 + Math.random() * 80}%`;
+  box.style.top = `${10 + Math.random() * 75}%`;
+  box.classList.add('on');
+  mindEyeTimer = setTimeout(() => {
+    box.classList.add('blink');
+    mindEyeTimer = setTimeout(() => {
+      box.classList.remove('on', 'blink');
+      mindEyeTimer = setTimeout(scheduleMindEyes, MIND_EYE_FADE_MS);
+    }, MIND_EYE_HOLD_MS / 2);
+  }, MIND_EYE_FADE_MS + MIND_EYE_HOLD_MS / 2);
 }
 
 function sendSheetPatch(patch) {
