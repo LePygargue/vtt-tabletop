@@ -1580,8 +1580,10 @@ kbd {
 }
 /* Santé mentale basse (L'Appel de Cthulhu, par joueur : js/sheet.js updateMindFx). --mind va de 0
    (SAN ≥ 80 % de la SAN de départ) à 1 (SAN 0) ; data-mind donne le palier (1 à 3). Rien ne capte
-   de clic. Performances : aucun filtre sur le plateau, calques fixes dont seule l'opacité s'anime
-   (géré par la carte graphique, sans redessiner). Palier 1 : voile sombre et bords violacés qui
+   de clic. Performances : aucun filtre sur le plateau, et les animations ne touchent que l'opacité
+   avec des valeurs fixes (jamais de var() dans les @keyframes, sinon le navigateur ne peut plus les
+   confier à la carte graphique et redessine tout l'écran à chaque image). L'intensité (--mind) passe
+   par les couleurs des dégradés, calculées une fois. Palier 1 : voile sombre et bords violacés qui
    respirent. Palier 2 : ombres des coins qui gonflent. Palier 3 : pulsation plus rapide, murmures. */
 .mind-fx { display: none; }
 :root[data-game="coc7"] body[data-mind]:not([data-mind="0"]) .mind-fx {
@@ -1601,39 +1603,28 @@ kbd {
 /* ombres des coins (palier 2 et plus) */
 :root[data-game="coc7"] body:is([data-mind="2"], [data-mind="3"]) .mind-fx::after {
   background:
-    radial-gradient(38% 34% at 0% 100%, rgba(2, 8, 6, .95), transparent 72%),
-    radial-gradient(34% 40% at 100% 0%, rgba(2, 8, 6, .9), transparent 72%),
-    radial-gradient(30% 36% at 100% 100%, rgba(26, 6, 40, .9), transparent 72%),
-    radial-gradient(32% 28% at 0% 0%, rgba(26, 6, 40, .85), transparent 72%);
-  animation: mind-creep 11s ease-in-out infinite;
+    radial-gradient(38% 34% at 0% 100%, rgba(2, 8, 6, calc(var(--mind) * .95)), transparent 72%),
+    radial-gradient(34% 40% at 100% 0%, rgba(2, 8, 6, calc(var(--mind) * .9)), transparent 72%),
+    radial-gradient(30% 36% at 100% 100%, rgba(26, 6, 40, calc(var(--mind) * .9)), transparent 72%),
+    radial-gradient(32% 28% at 0% 0%, rgba(26, 6, 40, calc(var(--mind) * .85)), transparent 72%);
+  animation: mind-breathe 11s ease-in-out infinite;
 }
 :root[data-game="coc7"] body[data-mind="3"] .mind-fx::before { animation-duration: 3.5s; }
 :root[data-game="coc7"] body[data-mind="3"] .mind-fx::after { animation-duration: 6s; }
-/* murmures (palier 3) : un élément à part, seule son opacité change */
+/* murmures (palier 3) : placés au hasard par js/sheet.js, fondu lent par transition d'opacité */
 .mind-whisper { display: none; }
 :root[data-game="coc7"] body[data-mind="3"] .mind-whisper {
-  display: block; position: absolute; left: 6%; right: 6%; bottom: 16%; pointer-events: none; text-align: center;
-  font: italic 500 clamp(18px, 2.4vw, 30px) var(--font-display, serif); letter-spacing: .3em;
+  display: block; position: absolute; max-width: 40%; pointer-events: none; text-align: center;
+  font: italic 500 clamp(18px, 2.4vw, 30px) var(--font-display, serif); letter-spacing: .25em;
   color: var(--madness); opacity: 0; will-change: opacity;
-  animation: mind-whisper 19s linear infinite;
+  transition: opacity 3.5s ease-in-out;
 }
-:root[data-game="coc7"] body[data-mind="3"] [data-key="san"] .quick-value { animation: mind-san 2.4s steps(2) infinite; }
+:root[data-game="coc7"] body[data-mind="3"] .mind-whisper.on { opacity: .6; }
+:root[data-game="coc7"] body[data-mind="3"] [data-key="san"] .quick-value { color: var(--madness); }
 @keyframes mind-breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-@keyframes mind-creep { 0%, 100% { opacity: calc(var(--mind) * .6); } 50% { opacity: calc(var(--mind) * 1.2); } }
-@keyframes mind-whisper {
-  0%, 30%, 38%, 100% { opacity: 0; }
-  32% { opacity: .55; }
-  34% { opacity: .15; }
-  35.5% { opacity: .6; }
-  72%, 77% { opacity: 0; }
-  74% { opacity: .4; }
-}
-@keyframes mind-san { 0%, 100% { color: inherit; } 50% { color: var(--madness); } }
 @media (prefers-reduced-motion: reduce) {
-  :root[data-game="coc7"] body[data-mind] [data-key="san"] .quick-value,
   :root[data-game="coc7"] body[data-mind] .mind-fx::before,
   :root[data-game="coc7"] body[data-mind] .mind-fx::after { animation: none; }
-  :root[data-game="coc7"] body[data-mind] .mind-fx::after { opacity: calc(var(--mind) * .9); }
   :root[data-game="coc7"] body[data-mind] .mind-whisper { display: none; }
 }
 /* Danger 5 (Hunter) : la cellule est traquée. Ambiance constante et discrète, sans rien qui gêne

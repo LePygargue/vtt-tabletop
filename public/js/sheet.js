@@ -381,7 +381,42 @@ function updateMindFx(s) {
     mind = Math.max(0, Math.min(1, (0.8 - ratio) / 0.8));
   }
   document.documentElement.style.setProperty('--mind', mind.toFixed(3));
-  document.body.dataset.mind = mind <= 0 ? '0' : mind < 0.34 ? '1' : mind < 0.67 ? '2' : '3';
+  const tier = mind <= 0 ? '0' : mind < 0.34 ? '1' : mind < 0.67 ? '2' : '3';
+  if (document.body.dataset.mind !== tier) {
+    document.body.dataset.mind = tier;
+    scheduleMindWhisper();
+  }
+}
+
+/* Murmures du palier 3 : une phrase à un endroit pris au hasard, qui apparaît et s'efface lentement. */
+const MIND_WHISPERS = [
+  "ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn",
+  'Iä ! Iä ! Cthulhu fhtagn !',
+  'Yog-Sothoth connaît la porte',
+  "Ils sont déjà là",
+  "N'écoute pas",
+  'Le ciel n’a pas la bonne couleur',
+  'Tu l’as vu, toi aussi ?',
+];
+const MIND_WHISPER_FADE_MS = 3500; // durée du fondu (transition CSS de .mind-whisper)
+const MIND_WHISPER_HOLD_MS = 1500;
+let mindWhisperTimer = 0;
+function scheduleMindWhisper() {
+  clearTimeout(mindWhisperTimer);
+  $('mindWhisper').classList.remove('on');
+  if (document.body.dataset.mind !== '3' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  mindWhisperTimer = setTimeout(showMindWhisper, 4000 + Math.random() * 8000);
+}
+function showMindWhisper() {
+  const w = $('mindWhisper');
+  w.textContent = MIND_WHISPERS[Math.floor(Math.random() * MIND_WHISPERS.length)];
+  w.style.left = `${4 + Math.random() * 52}%`; // max-width 40 % : reste dans l'écran
+  w.style.top = `${10 + Math.random() * 72}%`;
+  w.classList.add('on');
+  mindWhisperTimer = setTimeout(() => {
+    w.classList.remove('on');
+    mindWhisperTimer = setTimeout(scheduleMindWhisper, MIND_WHISPER_FADE_MS);
+  }, MIND_WHISPER_FADE_MS + MIND_WHISPER_HOLD_MS);
 }
 
 function sendSheetPatch(patch) {

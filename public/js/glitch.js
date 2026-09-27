@@ -11,7 +11,7 @@ const GLITCH_INTENSITY = 1.6; // « violent »
 // Les copies du plateau (image, canaux teintés) sont calculées au plus sur cette largeur puis
 // agrandies : bien moins de pixels à traiter à chaque image, et les bandes déchirées prennent
 // un aspect pixelisé qui va bien avec l'effet.
-const GLITCH_BUF_MAX_W = 800;
+const GLITCH_BUF_MAX_W = 600;
 const GLITCH_PAL = {
   'danger-up': { a: '#ff3a2f', b: '#3dff8a', bars: ['#ff3a2f', '#e8541e', '#3dff8a'] },
   'desperation-up': { a: '#ffb13b', b: '#3dff8a', bars: ['#ffe14a', '#ffb13b', '#3dff8a'] },
