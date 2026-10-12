@@ -12,15 +12,13 @@ const roomId = (location.pathname.split('/')[2] || '').toUpperCase();
 /* ------------------------------------------------------------------ */
 /* Identité (clé MJ / joueur)                                          */
 /* ------------------------------------------------------------------ */
+// Jamais conservée dans le navigateur : elle vient du lien MJ, ou du serveur quand le compte est MJ du salon.
 let gmKey = null;
 try {
   const h = new URLSearchParams(location.hash.slice(1)).get('gm');
   if (h) {
     gmKey = h;
-    try { localStorage.setItem('gm:' + roomId, h); } catch (e) {}
     history.replaceState(null, '', location.pathname);
-  } else {
-    gmKey = localStorage.getItem('gm:' + roomId);
   }
 } catch (e) {}
 
