@@ -1446,6 +1446,178 @@ kbd {
 :root[data-game="pf2e"] #sheetPanel .sheet-body section { border-color: #cdb383; }
 :root[data-game="pf2e"] #sheetPanel .sheet-card .box-grid .box { border-color: #a07f45; }
 
+/* ================= Pathfinder, second style : « la nef de pierre » =================
+   Choisi dans l'aide (data-skin="nef" sur la racine, mémorisé par navigateur). Pierre noire sculptée,
+   laiton terni, sang séché : le plateau est la scène sous la nef, encadrée par le linteau (barre du
+   haut), les stèles (panneaux), la corniche (bas d'écran). Cadres dans public/img/nef/, posés en
+   border-image découpée en 9 pour que les coins sculptés restent nets à toutes les tailles.
+   Les mesures en 100vw / 1920 suivent la largeur du linteau et de la corniche, dessinés pour 1920 px. */
+.pf2e-only, .nef-ledge, .nef-lintel { display: none; }
+:root[data-game="pf2e"] .pf2e-only { display: block; }
+[data-game="pf2e"][data-skin="nef"] {
+  --bg: #070706;
+  --panel: #12110e;
+  --panel-2: #1b1915;
+  --line: #3a3428;
+  --text: #e2d8c2;
+  --muted: #a89c84;
+  --accent: #c9aa6b;
+  --on-accent: #1b130a;
+  --gold: #e6cf98;
+  --gold-line: #8a7448;
+  --brass-hi: #ecd8a4; --brass: #b5934f; --brass-lo: #5e4e2c;
+  --canvas-bg: #121110;
+  --canvas-fog: #050504;
+  --canvas-grid: rgba(201, 170, 107, .16);
+  --canvas-felt: 1;
+  --token-rim: #b5934f;
+  --vignette: #000000e8;
+  --rdie-front-c: #2c2822; --rdie-side-c: #1d1b17; --rdie-low-c: #12110e; --rdie-text: #ecd8a4;
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-body: 'Cormorant Garamond', Garamond, Georgia, serif;
+  --nef-s: calc(100vw / 1920); /* échelle du linteau et de la corniche */
+}
+/* Matière commune : pierre sombre, champs creusés */
+:root[data-game="pf2e"][data-skin="nef"] :is(#topbar, #panel, #dicePanel, #drawBar) { background-color: #12110e; --panel-2: #1b1915; --line: #3a3428; }
+:root[data-game="pf2e"][data-skin="nef"] :is(#topbar, #panel, #dicePanel, #drawBar, .confirm-card, .npc-profile-card) :is(input, select, textarea) {
+  background: #0a0908; border-color: #3a3428; border-radius: 2px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .7);
+}
+/* Boutons : pierre biseautée, liseré de laiton au survol ; actifs en laiton poli */
+:root[data-game="pf2e"][data-skin="nef"] :is(#topbar, #panel, #dicePanel) button:not(.primary):not(.on):not(.dpip):not(.section-toggle):not(.box):not(.rules-outline-item),
+:root[data-game="pf2e"][data-skin="nef"] :is(#drawBar .draw-btn:not(.on), .confirm-card button:not(.primary):not(.on):not(.danger-solid), .npc-profile-close) {
+  background: linear-gradient(180deg, #2a261f, #15130f);
+  border-color: #3f382a; border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(236, 216, 164, .12), inset 0 -2px 4px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .6);
+}
+:root[data-game="pf2e"][data-skin="nef"] :is(#topbar, #panel, #dicePanel) button:not(.primary):not(.on):not(.dpip):not(.section-toggle):not(.box):hover,
+:root[data-game="pf2e"][data-skin="nef"] :is(#drawBar .draw-btn:not(.on), .confirm-card button:not(.primary):not(.on):not(.danger-solid), .npc-profile-close):hover { border-color: var(--accent); color: var(--gold); }
+:root[data-game="pf2e"][data-skin="nef"] :is(button.primary, .seg button.on, .draw-btn.on) {
+  background: linear-gradient(180deg, #e7cf8f, #b48c45 60%, #8c6a2c);
+  border-color: #e3c886; border-radius: 2px; color: #1b130a;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 200, .5), 0 2px 4px rgba(0, 0, 0, .6);
+}
+:root[data-game="pf2e"][data-skin="nef"] .seg button { border-radius: 2px; }
+
+/* Barre du haut : transparente, posée sur le linteau (.nef-lintel), un calque à part : au-dessus du plateau
+   mais sous les stèles (z-index 3 contre 4), qui montent jusqu'à la barre et recouvrent ses pendentifs. */
+:root[data-game="pf2e"][data-skin="nef"] #topbar {
+  min-height: calc(var(--nef-s) * 80);
+  background: none; border: 0; border-image: none; box-shadow: none;
+}
+/* Barre de l'image (lignes 108 à 190 sur 347) alignée sur le bas de la barre du haut ; au-dessus, fond de pierre */
+:root[data-game="pf2e"][data-skin="nef"] .nef-lintel {
+  display: block; position: fixed; left: 0; right: 0; top: 0; z-index: 3; pointer-events: none;
+  height: calc(var(--topbar-h, 52px) + var(--nef-s) * 157);
+  background:
+    url("/img/nef/linteau.webp") left bottom / 100vw calc(var(--nef-s) * 347) no-repeat,
+    linear-gradient(180deg, #100f0c, #070706) left top / 100% calc(var(--topbar-h, 52px) - var(--nef-s) * 60) no-repeat;
+}
+/* Joueurs en préparation : l'écran d'attente (z-index 5) passerait devant */
+body.prep-limited .nef-lintel { z-index: 6; }
+/* La barre est plus haute que ses boutons : les boutons à icône seule ne s'étirent plus sur toute sa hauteur,
+   ils restent carrés et à la hauteur des boutons à texte (comme « ? ») */
+:root[data-game="pf2e"][data-skin="nef"] #topbar :is(.icon-btn, #btnHelp) { align-self: center; height: 2.2em; min-width: 2.2em; padding-block: 0; }
+:root[data-game="pf2e"][data-skin="nef"] #roomLabel { font-family: var(--font-display); font-weight: 700; color: var(--gold); letter-spacing: .06em; text-shadow: 0 2px 6px #000; }
+
+/* Panneaux : stèles. La bordure réelle borne le défilement, l'image déborde dessous sur la marge intérieure. */
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) {
+  top: calc(var(--topbar-h, 52px) + 4px);
+  z-index: 4;
+  background: none; box-shadow: none; border-radius: 0;
+  border-style: solid; border-color: transparent; border-width: 40px 26px 40px;
+  border-image: url("/img/nef/stele.webp") 230 130 230 130 fill / 115px 65px stretch;
+  padding: 6px 8px 10px;
+  scrollbar-width: thin; scrollbar-color: #5e4e2c transparent;
+}
+:root[data-game="pf2e"][data-skin="nef"] #drawBar { top: calc(var(--topbar-h, 52px) + 4px); border-color: #3f382a; border-radius: 2px; box-shadow: 0 8px 22px rgba(0, 0, 0, .6); }
+/* Titres de section : capitales gravées entre deux filets qui s'effacent (au lieu des plaques de laiton) */
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3 {
+  display: flex; align-items: center; gap: 10px; padding: 0; margin: 2px 0 10px;
+  background: none; border: 0; box-shadow: none; clip-path: none;
+  font-family: var(--font-display); font-size: 14px; font-weight: 600; letter-spacing: .2em;
+  color: var(--accent); text-shadow: 0 1px 0 #000;
+}
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3::before,
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3::after {
+  content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-line));
+}
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3::after { background: linear-gradient(90deg, var(--gold-line), transparent); }
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3 .section-toggle { flex: none; width: auto; letter-spacing: inherit; color: inherit; }
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section > h3 .section-toggle:hover { color: var(--gold); }
+:root[data-game="pf2e"][data-skin="nef"] :is(#panel, #dicePanel) section { background-size: 180px 12px; }
+:root[data-game="pf2e"][data-skin="nef"] #dicePanel .dice-grid .die[data-sides="20"] { border-color: var(--accent); color: var(--gold); box-shadow: inset 0 0 0 1px #4d3f22, 0 0 10px rgba(201, 170, 107, .25); }
+:root[data-game="pf2e"][data-skin="nef"] #diceLog li { background: rgba(0, 0, 0, .25); border-bottom-color: rgba(117, 104, 74, .4); }
+:root[data-game="pf2e"][data-skin="nef"] #initiativeList li { background: rgba(0, 0, 0, .25); border-color: rgba(117, 104, 74, .4); }
+:root[data-game="pf2e"][data-skin="nef"] #initiativeList li.sel { border-color: var(--accent); box-shadow: inset 5px 0 0 #8c201c, 0 0 10px rgba(201, 170, 107, .3); }
+
+/* Bannière de jet : cartouche de pierre, nom du jet dans l'écusson du haut */
+:root[data-game="pf2e"][data-skin="nef"] #rollBanner { bottom: calc(var(--nef-s) * 70 + 12px); }
+:root[data-game="pf2e"][data-skin="nef"] .roll-banner {
+  --text: #e2d8c2; --muted: #a89c84; --ok-text: #b7c98c;
+  color: var(--text); min-width: min(440px, calc(100vw - 24px));
+  background: none; box-shadow: none; border-radius: 0;
+  border-style: solid; border-color: transparent; border-width: 34px 34px 50px;
+  border-image: url("/img/nef/cartouche.webp") 58 60 90 60 fill / 41px 42px 63px stretch;
+  padding: 10px 18px 6px;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, .8));
+}
+:root[data-game="pf2e"][data-skin="nef"] .roll-banner:is(.crit, .botch, .overreach) { animation: crit-shake .5s ease .65s; }
+:root[data-game="pf2e"][data-skin="nef"] .roll-banner.crit { filter: drop-shadow(0 14px 22px rgba(0, 0, 0, .8)) drop-shadow(0 0 14px rgba(236, 216, 164, .45)); }
+:root[data-game="pf2e"][data-skin="nef"] .roll-banner.botch { filter: drop-shadow(0 14px 22px rgba(0, 0, 0, .8)) drop-shadow(0 0 14px rgba(201, 68, 58, .5)); }
+
+/* Corniche : ferme la scène en bas, sous les stèles */
+:root[data-game="pf2e"][data-skin="nef"] .nef-ledge {
+  display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; pointer-events: none;
+  height: calc(var(--nef-s) * 178);
+  background: url("/img/nef/corniche.webp") 0 0 / 100% 100% no-repeat;
+}
+body.prep-limited .nef-ledge { display: none !important; }
+
+/* Boîtes de dialogue (aide, confirmations) : cadre à bords estompés */
+:root[data-game="pf2e"][data-skin="nef"] .confirm-card {
+  background: radial-gradient(90% 90% at 50% 40%, #1a1813, #0c0b09) padding-box;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .8); border-radius: 0;
+  border-style: solid; border-color: transparent; border-width: 30px 30px;
+  border-image: url("/img/nef/dialogue.webp") 60 110 60 110 fill / 30px 55px stretch;
+  padding: 10px 14px 12px;
+}
+:root[data-game="pf2e"][data-skin="nef"] .confirm-card :is(h2, h3) { font-family: var(--font-display); color: var(--gold); letter-spacing: .05em; }
+:root[data-game="pf2e"][data-skin="nef"] .confirm-card h2 { border-bottom-color: rgba(117, 104, 74, .5); }
+
+/* Présentation d'un PNJ : cadre aux grilles de cimetière, écusson au-dessus du portrait */
+:root[data-game="pf2e"][data-skin="nef"] .npc-profile-card {
+  overflow: visible; border-radius: 0; box-shadow: none;
+  background: #0c0b09 padding-box;
+  border-style: solid; border-color: transparent; border-width: 62px 66px 78px;
+  border-image: url("/img/nef/presentation.webp") 160 170 190 170 / 72px 77px 86px stretch;
+  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, .85));
+}
+:root[data-game="pf2e"][data-skin="nef"] .npc-profile-portrait { background: #050504; border-right-color: rgba(117, 104, 74, .45); }
+:root[data-game="pf2e"][data-skin="nef"] .npc-profile-body { max-height: calc(var(--overlay-max-h) - 140px); }
+:root[data-game="pf2e"][data-skin="nef"] .npc-profile-portrait img { max-height: calc(var(--overlay-max-h) - 140px); }
+:root[data-game="pf2e"][data-skin="nef"] .npc-profile-body h2 { font-family: var(--font-display); letter-spacing: .05em; }
+
+/* Joueurs pendant la préparation : la nef entière, vide, en attente du plateau */
+@media (min-width: 700px) {
+  :root[data-game="pf2e"][data-skin="nef"] .prep-card {
+    position: relative; isolation: isolate;
+    --w: min(860px, calc(100vw - 32px));
+    width: var(--w); aspect-ratio: 2064 / 1207;
+    display: grid; place-content: center; padding: calc(var(--w) * .14) calc(var(--w) * .19) calc(var(--w) * .06);
+    background: url("/img/nef/nef.webp") 0 0 / 100% 100% no-repeat;
+    border: 0; border-radius: 0;
+    filter: drop-shadow(0 30px 50px rgba(0, 0, 0, .8));
+  }
+  :root[data-game="pf2e"][data-skin="nef"] .prep-card::before {
+    content: ""; position: absolute; inset: 22% 17% 8%; z-index: -1;
+    background: radial-gradient(70% 80% at 50% 45%, #1d1a14, #070706);
+  }
+}
+:root[data-game="pf2e"][data-skin="nef"] .prep-card h2 { font-family: var(--font-display); color: var(--gold); letter-spacing: .05em; }
+
+/* Fiche, journal, règles : le parchemin est conservé, la reliure passe à la pierre noire */
+:root[data-game="pf2e"][data-skin="nef"] #sheetPanel .sheet-card { border-color: #15130f; box-shadow: inset 0 0 40px rgba(120, 80, 25, .35), 0 0 0 1px #3a3428, 0 24px 60px rgba(0, 0, 0, .8); }
+
 /* L'Appel de Cthulhu : d'après le jeu vidéo Call of Cthulhu (2018) — noir d'encre, fumée sarcelle,
    émeraude lumineux, violet de la folie, cadres fins à coins et losanges ; frises de runes conservées. */
 [data-game="coc7"] {

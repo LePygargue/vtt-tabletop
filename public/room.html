@@ -10,11 +10,15 @@
 <script>
 // Thème du dernier jeu vu, avant le premier rendu (le vrai jeu du salon arrive avec l'état)
 try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElement.dataset.game = g; } catch (e) {}
+// Style de Pathfinder choisi dans l'aide (Nef de pierre), lui aussi avant le premier rendu
+try { var k = localStorage.getItem('plateau.pf2eSkin'); if (k) document.documentElement.dataset.skin = k; } catch (e) {}
 </script>
 </head>
 <body class="room">
 <a class="skip-link" href="#panel">Aller au panneau</a>
 <main id="stage"><canvas id="viewportCanvas" class="viewport-canvas" tabindex="0" aria-label="Plateau"></canvas><div class="stage-fx" aria-hidden="true"></div><div class="mind-fx" aria-hidden="true"></div><div id="mindWhisper" class="mind-whisper" aria-hidden="true"></div><div id="mindEyes" class="mind-eyes" aria-hidden="true"></div></main>
+<div class="nef-lintel" aria-hidden="true"></div>
+<div class="nef-ledge" aria-hidden="true"></div>
 
 <section id="prepScreen" aria-labelledby="prepTitle">
   <div class="prep-card">
@@ -440,6 +444,13 @@ try { var g = localStorage.getItem('plateau.game'); if (g) document.documentElem
       <button type="button" data-ui-size="1" class="on" role="radio" aria-checked="true">Normale</button>
       <button type="button" data-ui-size="1.15" role="radio" aria-checked="false">Grande</button>
       <button type="button" data-ui-size="1.3" role="radio" aria-checked="false">Très grande</button>
+    </div>
+    <div class="pf2e-only">
+      <h3>Style de Pathfinder</h3>
+      <div class="seg" role="radiogroup" aria-label="Style de Pathfinder">
+        <button type="button" data-pf2e-skin="" class="on" role="radio" aria-checked="true">Table de l'aventurier</button>
+        <button type="button" data-pf2e-skin="nef" role="radio" aria-checked="false">Nef de pierre</button>
+      </div>
     </div>
     <h3>Son</h3>
     <div class="sound-settings">

@@ -26,6 +26,27 @@ for (const b of document.querySelectorAll('[data-ui-size]')) {
   });
 }
 
+/* Style de Pathfinder : table de l'aventurier (par défaut) ou nef de pierre (mémorisé par navigateur) */
+const PF2E_SKIN_KEY = 'plateau.pf2eSkin';
+function applyPf2eSkin(skin) {
+  if (skin) document.documentElement.dataset.skin = skin;
+  else delete document.documentElement.dataset.skin;
+  for (const b of document.querySelectorAll('[data-pf2e-skin]')) setRadioOn(b, b.dataset.pf2eSkin === skin);
+  refreshThemeColors(); // fond du plateau, quadrillage et liseré des jetons changent avec le style
+  syncTopbarHeight();
+}
+for (const b of document.querySelectorAll('[data-pf2e-skin]')) {
+  b.addEventListener('click', () => {
+    applyPf2eSkin(b.dataset.pf2eSkin);
+    try { localStorage.setItem(PF2E_SKIN_KEY, b.dataset.pf2eSkin); } catch (e) { /* réglage non mémorisé */ }
+  });
+}
+{
+  let saved = '';
+  try { saved = localStorage.getItem(PF2E_SKIN_KEY) || ''; } catch (e) { /* idem */ }
+  applyPf2eSkin(document.querySelector(`[data-pf2e-skin="${saved}"]`) ? saved : '');
+}
+
 /* Son du site : coupé ou non, et volume (mémorisés par navigateur) */
 const SOUND_KEY = 'plateau.sound';
 const soundSettings = { muted: false, volume: 60 };
